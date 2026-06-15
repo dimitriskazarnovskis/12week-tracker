@@ -1,0 +1,15 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap');
+:root, [data-theme="light"] {
+  --bg:#FAFAFA; --surface:#FFFFFF; --ink:#231F20; --muted:#9A9899; --body:#54524F;
+  --line:#E6E4E1; --red:#D12329; --red-soft:#F4F2EF; --ring-track:#ECEAE7;
+  --nav-bg:#FFFFFF; --accent-on-nav:#D12329;
+}
+[data-theme="dark"] {
+  --bg:#141318; --surface:rgba(255,255,255,.06); --ink:#FFFFFF; --muted:#9a98a4; --body:#cfcdd3;
+  --line:rgba(255,255,255,.10); --red:#D12329; --red-soft:rgba(255,255,255,.05); --ring-track:rgba(255,255,255,.10);
+  --nav-bg:rgba(255,255,255,.04); --accent-on-nav:#ff5a5f;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{font-family:'Montserrat',-apple-system,sans-serif;background:var(--bg);color:var(--ink);
+  max-width:480px;margin:0 auto;min-height:100vh}
+@media (prefers-reduced-motion: reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
