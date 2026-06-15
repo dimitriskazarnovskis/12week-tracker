@@ -1,11 +1,11 @@
 <script lang="ts">
-  import logoDark from '../assets/logo-dual.png';
-  import logoLight from '../assets/logo-dual-light.png';
+  import logoForLight from '../assets/logo-dual.png';      // dark gears, on light bg
+  import logoForDark from '../assets/logo-dual-dark.png';  // light/white gears, on dark bg
   let { scheme, onToggle }: { scheme: 'light' | 'dark'; onToggle: () => void } = $props();
 </script>
 <header class="hd">
   <div class="brand">
-    <img src={scheme === 'dark' ? logoLight : logoDark} alt="Dr. Kazarnovskis & Partners" />
+    <img src={scheme === 'dark' ? logoForDark : logoForLight} alt="Dr. Kazarnovskis & Partners" />
     <b>Dr. Kazarnovskis <span>&amp;</span> Partners</b>
   </div>
   <button class="tg" onclick={onToggle} aria-label="Сменить тему">{scheme === 'dark' ? '☀️' : '🌙'}</button>
