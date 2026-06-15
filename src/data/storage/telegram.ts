@@ -3,10 +3,21 @@ import type { AppData, Progress } from '../types';
 import { emptyProgress, WEEKS } from '../types';
 
 function cs(): any { return (globalThis as any)?.Telegram?.WebApp?.CloudStorage ?? null; }
-const get = (k: string) => new Promise<string>(res => cs().getItem(k, (_e: any, v: string) => res(v ?? '')));
-const set = (k: string, v: string) => new Promise<void>(res => cs().setItem(k, v, () => res()));
-const keys = () => new Promise<string[]>(res => cs().getKeys((_e: any, k: string[]) => res(k ?? [])));
-const del = (ks: string[]) => new Promise<void>(res => ks.length ? cs().removeItems(ks, () => res()) : res());
+// Wrap each CloudStorage call so a thrown error OR a callback that never fires
+// (old/unsupported clients) resolves to a fallback instead of hanging forever.
+function guarded<T>(fallback: T, run: (resolve: (v: T) => void) => void): Promise<T> {
+  return new Promise<T>(res => {
+    let done = false;
+    const finish = (v: T) => { if (!done) { done = true; res(v); } };
+    const timer = setTimeout(() => finish(fallback), 3000);
+    try { run(v => { clearTimeout(timer); finish(v); }); }
+    catch { clearTimeout(timer); finish(fallback); }
+  });
+}
+const get = (k: string) => guarded('', res => cs().getItem(k, (_e: any, v: string) => res(v ?? '')));
+const set = (k: string, v: string) => guarded<void>(undefined, res => cs().setItem(k, v, () => res(undefined)));
+const keys = () => guarded<string[]>([], res => cs().getKeys((_e: any, k: string[]) => res(k ?? [])));
+const del = (ks: string[]) => ks.length ? guarded<void>(undefined, res => cs().removeItems(ks, () => res(undefined))) : Promise.resolve();
 
 const monthOf = (iso: string) => iso.slice(0, 7);
 function safeParse<T>(raw: string, fallback: T): T { try { return raw ? (JSON.parse(raw) as T) : fallback; } catch { return fallback; } }
