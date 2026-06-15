@@ -1,0 +1,13 @@
+import type { StorageAdapter } from './adapter';
+import type { AppData } from '../types';
+const KEY = 'kazdash';
+
+export class LocalStorageAdapter implements StorageAdapter {
+  async load(): Promise<unknown | null> {
+    try { const raw = localStorage.getItem(KEY); return raw ? JSON.parse(raw) : null; }
+    catch { return null; }
+  }
+  async save(data: AppData): Promise<void> {
+    try { localStorage.setItem(KEY, JSON.stringify(data)); } catch {}
+  }
+}
