@@ -9,6 +9,7 @@
   import ScoreRing from '../components/ScoreRing.svelte';
   import KpiTile from '../components/KpiTile.svelte';
   import TaskRow from '../components/TaskRow.svelte';
+  import Confetti from '../components/Confetti.svelte';
 
   let { store }: { store: Store } = $props();
   const d = $derived(store.data);
@@ -20,11 +21,26 @@
   const hasTactics = $derived((d.plan?.tactics?.length ?? 0) > 0);
   const today = $derived(currentWeek(d.plan!.startDate, new Date()));
 
+  const celebrated = new Set<number>();
+  let showConfetti = $state(false);
+  $effect(() => {
+    if (score >= 85 && !celebrated.has(week)) {
+      celebrated.add(week);
+      const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+      if (!reduced) {
+        tg().haptic('success');
+        showConfetti = true;
+        setTimeout(() => (showConfetti = false), 1800);
+      }
+    }
+  });
+
   function toggle(taskId: string) { tg().haptic('light'); store.toggleTask(week, taskId); }
   function toggleTheme() { store.setTheme(scheme === 'dark' ? 'light' : 'dark'); }
   function onReflect(e: Event) { store.setReflection(week, (e.target as HTMLTextAreaElement).value); }
 </script>
 
+{#if showConfetti}<Confetti />{/if}
 <AppHeader {scheme} onToggle={toggleTheme} />
 <WeekStrip current={week} {scores} onPick={(w) => (week = w)} />
 <main class="bd">
