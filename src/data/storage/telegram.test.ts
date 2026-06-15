@@ -42,4 +42,42 @@ describe('TelegramCloudAdapter', () => {
     (globalThis as any).Telegram = { WebApp: { CloudStorage: mockCloud().api } };
     expect(await new TelegramCloudAdapter().load()).toBeNull();
   });
+  it('deletes stale shards when data shrinks (no resurrection)', async () => {
+    const c = mockCloud(); (globalThis as any).Telegram = { WebApp: { CloudStorage: c.api } };
+    const a = new TelegramCloudAdapter();
+    const d = migrate(null);
+    d.plan = { planId: 'p', planVersion: 1, clientId: '', startDate: '2026-06-01',
+      goals: [], tactics: [], calendar: [
+        { id: 'e1', date: '2026-07-01', type: 'reel', title: 'A', status: 'planned' },
+        { id: 'e2', date: '2026-07-02', type: 'reel', title: 'B', status: 'planned' } ] };
+    d.progress.checks['3:t1'] = true;
+    await a.save(d);
+    // shrink: drop one calendar entry and the week-3 check
+    d.plan.calendar = [{ id: 'e1', date: '2026-07-01', type: 'reel', title: 'A', status: 'planned' }];
+    d.progress.checks['3:t1'] = false;
+    await a.save(d);
+    const back: any = await a.load();
+    expect(back.plan.calendar.length).toBe(1);
+    expect(back.progress.checks['3:t1']).toBeFalsy();
+  });
+  it('removes kd_plan when plan becomes null', async () => {
+    const c = mockCloud(); (globalThis as any).Telegram = { WebApp: { CloudStorage: c.api } };
+    const a = new TelegramCloudAdapter();
+    const d = migrate(null);
+    d.plan = { planId: 'p', planVersion: 1, clientId: '', startDate: '2026-06-01', goals: [], tactics: [], calendar: [] };
+    await a.save(d);
+    d.plan = null; await a.save(d);
+    const back: any = await a.load();
+    expect(back.plan).toBeNull();
+    expect(Object.keys(c.mem)).not.toContain('kd_plan');
+  });
+  it('load skips a corrupt shard instead of throwing', async () => {
+    const c = mockCloud(); (globalThis as any).Telegram = { WebApp: { CloudStorage: c.api } };
+    const a = new TelegramCloudAdapter();
+    const d = migrate(null); await a.save(d);
+    c.mem['kd_prog_w5'] = '{not json';
+    const back: any = await a.load();
+    expect(back).not.toBeNull();
+    expect(back.meta.schemaVersion).toBe(1);
+  });
 });

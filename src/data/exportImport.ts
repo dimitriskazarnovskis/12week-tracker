@@ -8,12 +8,9 @@ export function toExport(d: AppData, appVersion: string): string {
 }
 
 function looksLikeExportOrAppData(parsed: any): boolean {
-  // Accepts either a wrapped export ({ data: ... }) or a raw AppData ({ meta, progress, ... })
-  if (parsed && typeof parsed === 'object') {
-    if (parsed.data && typeof parsed.data === 'object') return true; // wrapped export
-    if (parsed.meta && parsed.progress) return true;                 // raw AppData shape
-  }
-  return false;
+  if (!parsed || typeof parsed !== 'object') return false;
+  if (parsed.data && typeof parsed.data === 'object') return parsed.app === 'kazarnovskis-dashboard';
+  return !!(parsed.meta && parsed.progress && parsed.settings);
 }
 
 export function fromImport(text: string): AppData {

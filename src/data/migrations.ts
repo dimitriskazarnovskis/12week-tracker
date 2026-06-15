@@ -1,6 +1,7 @@
 import type { AppData } from './types';
 import { emptyProgress } from './types';
 import { now } from '../lib/ids';
+import { isAppData } from './validate';
 
 export const CURRENT_VERSION = 1;
 
@@ -22,12 +23,14 @@ const steps: Array<(d: any) => any> = [
 ];
 
 export function migrate(raw: unknown): AppData {
-  if (raw && typeof raw === 'object' && (raw as any).meta?.schemaVersion === CURRENT_VERSION) {
-    return raw as AppData;
+  const ver = (raw as any)?.meta?.schemaVersion;
+  if (ver === CURRENT_VERSION) {
+    return isAppData(raw) ? (raw as AppData) : fresh();
   }
-  let v = (raw as any)?.meta?.schemaVersion ?? 0;
+  let v = (typeof ver === 'number' && Number.isInteger(ver) && ver >= 0) ? Math.min(ver, CURRENT_VERSION) : 0;
   let data: any = raw ?? null;
   while (v < CURRENT_VERSION) { data = steps[v](data); v += 1; }
+  if (!isAppData(data)) data = fresh();
   data.meta.schemaVersion = CURRENT_VERSION;
   data.meta.updatedAt = now();
   return data as AppData;

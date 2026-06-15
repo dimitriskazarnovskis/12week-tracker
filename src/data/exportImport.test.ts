@@ -19,4 +19,7 @@ describe('export/import', () => {
     expect(() => fromImport('not json')).toThrow();
     expect(() => fromImport('{"foo":1}')).toThrow();
   });
+  it('rejects wrapped object without app field', () => {
+    expect(() => fromImport('{"data":{}}')).toThrow();
+  });
 });

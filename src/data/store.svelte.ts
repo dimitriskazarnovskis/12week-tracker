@@ -10,11 +10,15 @@ export function createStore(local: StorageAdapter, cloud: StorageAdapter | null)
   let data = $state<AppData>(migrate(null));
   let status = $state<Status>('idle');
   let error = $state<string | null>(null);
+  let cloudChain: Promise<void> = Promise.resolve();
 
   async function persist() {
     data.meta.updatedAt = now();
     try { await local.save(data); } catch (e) { error = String(e); }
-    if (cloud) { cloud.save(data).catch(() => {}); }
+    if (cloud) {
+      const snap = $state.snapshot(data) as AppData;
+      cloudChain = cloudChain.then(() => cloud.save(snap)).catch(() => {});
+    }
   }
 
   return {

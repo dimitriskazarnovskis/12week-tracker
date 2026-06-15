@@ -6,29 +6,32 @@ function cs(): any { return (globalThis as any)?.Telegram?.WebApp?.CloudStorage 
 const get = (k: string) => new Promise<string>(res => cs().getItem(k, (_e: any, v: string) => res(v ?? '')));
 const set = (k: string, v: string) => new Promise<void>(res => cs().setItem(k, v, () => res()));
 const keys = () => new Promise<string[]>(res => cs().getKeys((_e: any, k: string[]) => res(k ?? [])));
+const del = (ks: string[]) => new Promise<void>(res => ks.length ? cs().removeItems(ks, () => res()) : res());
 
 const monthOf = (iso: string) => iso.slice(0, 7);
+function safeParse<T>(raw: string, fallback: T): T { try { return raw ? (JSON.parse(raw) as T) : fallback; } catch { return fallback; } }
+const isDataShard = (k: string) => k === 'kd_plan' || k.startsWith('kd_cal_') || /^kd_prog_w\d+$/.test(k);
 
 export class TelegramCloudAdapter implements StorageAdapter {
   async load(): Promise<unknown | null> {
     if (!cs()) return null;
     const metaRaw = await get('kd_meta'); if (!metaRaw) return null;
-    const meta = JSON.parse(metaRaw);
-    const settings = JSON.parse((await get('kd_settings')) || '{"theme":"auto","lang":"ru"}');
+    const meta = safeParse<any>(metaRaw, null); if (!meta) return null;
+    const settings = safeParse<any>(await get('kd_settings'), { theme: 'auto', lang: 'ru' });
+    const allKeys = await keys();
     const planRaw = await get('kd_plan');
-    let plan = planRaw ? JSON.parse(planRaw) : null;
+    const plan = planRaw ? safeParse<any>(planRaw, null) : null;
     if (plan) {
-      const ks = await keys();
       const cal: any[] = [];
-      for (const k of ks.filter(k => k.startsWith('kd_cal_')).sort()) cal.push(...JSON.parse((await get(k)) || '[]'));
+      for (const k of allKeys.filter(k => k.startsWith('kd_cal_')).sort()) cal.push(...safeParse<any[]>(await get(k), []));
       plan.calendar = cal;
     }
     const progress: Progress = emptyProgress();
     for (let w = 1; w <= WEEKS; w++) {
       const raw = await get(`kd_prog_w${w}`); if (!raw) continue;
-      const wk = JSON.parse(raw);
+      const wk = safeParse<any>(raw, null); if (!wk) continue;
       for (const t of wk.tasks ?? []) progress.checks[`${w}:${t}`] = true;
-      Object.assign(progress.kpis, Object.fromEntries(Object.entries(wk.kpis ?? {}).map(([g, v]) => [`${w}:${g}`, v])));
+      for (const [g, v] of Object.entries(wk.kpis ?? {})) progress.kpis[`${w}:${g}`] = v as number;
       if (wk.reflection) progress.reflections[`${w}`] = wk.reflection;
     }
     return { meta, plan, progress, settings };
@@ -36,33 +39,29 @@ export class TelegramCloudAdapter implements StorageAdapter {
 
   async save(data: AppData): Promise<void> {
     if (!cs()) return;
-    await set('kd_meta', JSON.stringify(data.meta));
-    await set('kd_settings', JSON.stringify(data.settings));
+    const before = await keys();
+    const written = new Set<string>();
+    const put = async (k: string, v: string) => { await set(k, v); written.add(k); };
+
+    await put('kd_meta', JSON.stringify(data.meta));
+    await put('kd_settings', JSON.stringify(data.settings));
+
     if (data.plan) {
       const { calendar, ...core } = data.plan;
-      await set('kd_plan', JSON.stringify(core));
+      await put('kd_plan', JSON.stringify(core));
       const byMonth: Record<string, any[]> = {};
       for (const e of calendar) (byMonth[monthOf(e.date)] ??= []).push(e);
       for (const [m, list] of Object.entries(byMonth)) {
-        // Chunk month entries so no single key exceeds 4096 chars
-        let chunk: any[] = [];
-        let chunkIdx = 0;
+        let chunk: any[] = [], idx = 0;
+        const flush = async () => { await put(`kd_cal_${m}_${idx}`, JSON.stringify(chunk)); idx++; chunk = []; };
         for (const entry of list) {
-          const candidate = JSON.stringify([...chunk, entry]);
-          if (chunk.length > 0 && candidate.length > 4000) {
-            await set(`kd_cal_${m}_${chunkIdx}`, JSON.stringify(chunk));
-            chunkIdx++;
-            chunk = [entry];
-          } else {
-            chunk.push(entry);
-          }
+          if (chunk.length > 0 && JSON.stringify([...chunk, entry]).length > 4000) await flush();
+          chunk.push(entry);
         }
-        if (chunk.length) {
-          const key = chunkIdx === 0 ? `kd_cal_${m}` : `kd_cal_${m}_${chunkIdx}`;
-          await set(key, JSON.stringify(chunk));
-        }
+        if (chunk.length) await flush();
       }
     }
+
     for (let w = 1; w <= WEEKS; w++) {
       const tasks = Object.keys(data.progress.checks).filter(k => k.startsWith(`${w}:`) && data.progress.checks[k]).map(k => k.split(':')[1]);
       const kpis = Object.fromEntries(Object.entries(data.progress.kpis).filter(([k]) => k.startsWith(`${w}:`)).map(([k, v]) => [k.split(':')[1], v]));
@@ -71,7 +70,10 @@ export class TelegramCloudAdapter implements StorageAdapter {
       if (tasks.length) shard.tasks = tasks;
       if (Object.keys(kpis).length) shard.kpis = kpis;
       if (reflection) shard.reflection = reflection;
-      if (Object.keys(shard).length) await set(`kd_prog_w${w}`, JSON.stringify(shard));
+      if (Object.keys(shard).length) await put(`kd_prog_w${w}`, JSON.stringify(shard));
     }
+
+    const stale = before.filter(k => isDataShard(k) && !written.has(k));
+    await del(stale);
   }
 }

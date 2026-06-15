@@ -25,4 +25,10 @@ describe('migrations + validate', () => {
     expect(isAppData(42)).toBe(false);
     expect(isAppData({})).toBe(false);
   });
+  it('returns valid fresh AppData for future/garbage schema version (no crash)', () => {
+    expect(() => migrate({ meta: { schemaVersion: 99 } })).not.toThrow();
+    expect(isAppData(migrate({ meta: { schemaVersion: 99 } }))).toBe(true);
+    expect(() => migrate({ meta: { schemaVersion: -3 } })).not.toThrow();
+    expect(isAppData(migrate({ meta: { schemaVersion: -3 } }))).toBe(true);
+  });
 });
