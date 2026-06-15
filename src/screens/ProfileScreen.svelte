@@ -17,10 +17,16 @@
     URL.revokeObjectURL(a.href);
   }
   async function doImport(ev: Event) {
-    const f = (ev.target as HTMLInputElement).files?.[0];
+    const input = ev.target as HTMLInputElement;
+    const f = input.files?.[0];
     if (!f) return;
-    try { await store.importData(fromImport(await f.text())); syncTheme(); alert('Загружено'); }
-    catch (e) { alert(String((e as Error).message)); }
+    try {
+      const data = fromImport(await f.text());
+      if (confirm('Заменить все текущие данные данными из файла? Это необратимо.')) {
+        await store.importData(data); syncTheme(); alert('Загружено');
+      }
+    } catch (e) { alert(String((e as Error).message)); }
+    finally { input.value = ''; }
   }
   function reset() { if (confirm('Сбросить все данные?')) { store.reset(); syncTheme(); } }
 </script>

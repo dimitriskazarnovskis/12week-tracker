@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { Store } from '../data/store.svelte';
   import { tg } from '../lib/telegram';
-  import { resolveTheme } from '../theme/theme.svelte';
+  import { resolveTheme, sys } from '../theme/theme.svelte';
   import { weekScore, currentWeek, tacticsForGoal } from '../data/selectors';
   import { WEEKS } from '../data/types';
   import AppHeader from '../components/AppHeader.svelte';
@@ -17,7 +17,7 @@
   const scores = $derived(Array.from({ length: WEEKS }, (_, i) => weekScore(d, i + 1)));
   const score = $derived(weekScore(d, week));
   const block = $derived(week <= 4 ? 'Блок 1 · Привычка' : week <= 8 ? 'Блок 2 · Ускорение' : 'Блок 3 · Финиш');
-  const scheme = $derived(resolveTheme(d.settings.theme, tg().colorScheme()) as 'light' | 'dark');
+  const scheme = $derived(resolveTheme(d.settings.theme, sys.scheme) as 'light' | 'dark');
   const hasTactics = $derived((d.plan?.tactics?.length ?? 0) > 0);
   const today = $derived(currentWeek(d.plan!.startDate, new Date()));
 
@@ -37,7 +37,13 @@
 
   function toggle(taskId: string) { tg().haptic('light'); store.toggleTask(week, taskId); }
   function toggleTheme() { store.setTheme(scheme === 'dark' ? 'light' : 'dark'); }
-  function onReflect(e: Event) { store.setReflection(week, (e.target as HTMLTextAreaElement).value); }
+  let reflectTimer: ReturnType<typeof setTimeout> | undefined;
+  function onReflect(e: Event) {
+    const text = (e.target as HTMLTextAreaElement).value;
+    clearTimeout(reflectTimer);
+    reflectTimer = setTimeout(() => store.setReflection(week, text), 500);
+  }
+  function flushReflect(e: Event) { clearTimeout(reflectTimer); store.setReflection(week, (e.target as HTMLTextAreaElement).value); }
 </script>
 
 {#if showConfetti}<Confetti />{/if}
@@ -50,7 +56,8 @@
     <ScoreRing value={score} />
     <div class="kpis">
       {#each d.plan!.goals.slice(0, 2) as g}
-        <KpiTile label={g.metricName} value={d.progress.kpis[`${week}:${g.id}`] ?? 0} target={g.metricTarget} />
+        <KpiTile label={g.metricName} value={d.progress.kpis[`${week}:${g.id}`] ?? 0} target={g.metricTarget}
+          onChange={(v) => store.saveKpi(week, g.id, v)} />
       {/each}
     </div>
   </div>
@@ -69,7 +76,7 @@
   {#if week <= today}
     <div class="sec">Итог недели</div>
     <textarea class="reflect" placeholder="Что зашло, что меняем на следующей неделе?"
-      value={d.progress.reflections[`${week}`] ?? ''} onchange={onReflect}></textarea>
+      value={d.progress.reflections[`${week}`] ?? ''} oninput={onReflect} onblur={flushReflect}></textarea>
   {/if}
 </main>
 

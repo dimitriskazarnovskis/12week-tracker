@@ -5,6 +5,15 @@
     <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
     <title>Дашборд · Dr. Kazarnovskis & Partners</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script>
+      // Set theme before first paint to avoid a light flash for dark-mode users.
+      try {
+        var t = JSON.parse(localStorage.getItem('kazdash') || 'null');
+        var pref = t && t.settings && t.settings.theme;
+        var s = (window.Telegram && Telegram.WebApp && Telegram.WebApp.colorScheme) || 'light';
+        document.documentElement.setAttribute('data-theme', (!pref || pref === 'auto') ? s : pref);
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="app"></div>

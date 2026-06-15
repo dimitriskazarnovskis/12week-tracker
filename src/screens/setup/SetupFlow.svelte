@@ -3,15 +3,19 @@
   import type { Goal, Tactic, GoalColorId } from '../../data/types';
   import { GOAL_COLORS, EMOJIS } from '../../data/types';
   import { genId } from '../../lib/ids';
-  import logoDark from '../../assets/logo-dual.png';
+  import { resolveTheme, sys } from '../../theme/theme.svelte';
+  import logoForLight from '../../assets/logo-dual.png';
+  import logoForDark from '../../assets/logo-dual-dark.png';
 
   let { store }: { store: Store } = $props();
+  const scheme = $derived(resolveTheme(store.data.settings.theme, sys.scheme) as 'light' | 'dark');
+  function localToday() { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 10); }
 
   const colors = Object.keys(GOAL_COLORS) as GoalColorId[];
   let step = $state(0);
   let goals = $state<Goal[]>([{ id: genId('g'), name: '', emoji: '🎯', color: 'red', metricName: '', metricTarget: 0 }]);
   let tactics = $state<Tactic[]>([]);
-  let startDate = $state(new Date().toISOString().slice(0, 10));
+  let startDate = $state(localToday());
 
   function addGoal() {
     if (goals.length < 3) goals.push({ id: genId('g'), name: '', emoji: '📈', color: colors[goals.length % colors.length], metricName: '', metricTarget: 0 });
@@ -36,17 +40,14 @@
   }
   function finish() {
     if (!startDate) return alert('Укажите дату старта.');
-    store.setPlan({
-      planId: genId('p'), planVersion: 1, clientId: '', startDate,
-      goals: $state.snapshot(goals) as Goal[],
-      tactics: ($state.snapshot(tactics) as Tactic[]).filter((t) => t.text.trim()),
-      calendar: [],
-    });
+    const snapGoals = ($state.snapshot(goals) as Goal[]).map((g) => ({ ...g, name: g.name.trim(), metricName: g.metricName.trim() }));
+    const snapTactics = ($state.snapshot(tactics) as Tactic[]).map((t) => ({ ...t, text: t.text.trim() })).filter((t) => t.text);
+    store.setPlan({ planId: genId('p'), planVersion: 1, clientId: '', startDate, goals: snapGoals, tactics: snapTactics, calendar: [] });
   }
 </script>
 
 <div class="setup">
-  <div class="brand"><img src={logoDark} alt="logo" /><b>Dr. Kazarnovskis <span>&amp;</span> Partners</b></div>
+  <div class="brand"><img src={scheme === 'dark' ? logoForDark : logoForLight} alt="logo" /><b>Dr. Kazarnovskis <span>&amp;</span> Partners</b></div>
   <div class="steps">Шаг {step + 1} из 3</div>
 
   {#if step === 0}

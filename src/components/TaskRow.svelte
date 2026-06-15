@@ -11,4 +11,5 @@
   .cb{width:20px;height:20px;border-radius:6px;flex-shrink:0;border:2px solid var(--muted);display:flex;align-items:center;justify-content:center}
   .cb.on{background:var(--red);border-color:var(--red)}
   .cb.on::after{content:'✓';color:#fff;font-size:12px;font-weight:800}
+  .tx{min-width:0;overflow-wrap:anywhere}
 </style>

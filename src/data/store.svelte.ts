@@ -29,8 +29,16 @@ export function createStore(local: StorageAdapter, cloud: StorageAdapter | null)
     async load() {
       status = 'loading';
       try {
-        let raw = await local.load();
-        if (!raw && cloud) raw = await cloud.load();
+        const localRaw = await local.load();
+        let raw: unknown = localRaw;
+        if (cloud) {
+          const cloudRaw = await cloud.load();
+          if (cloudRaw) {
+            const lv = (localRaw as any)?.meta?.updatedAt ?? '';
+            const cv = (cloudRaw as any)?.meta?.updatedAt ?? '';
+            if (!localRaw || cv > lv) raw = cloudRaw; // newest wins (ISO timestamps compare lexically)
+          }
+        }
         data = migrate(raw);
         status = 'ready';
         await local.save(data);
