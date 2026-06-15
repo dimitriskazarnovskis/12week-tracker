@@ -1,3 +1,8 @@
+<script module lang="ts">
+  // Session-scoped: survives tab remounts so confetti fires once per week, not on every revisit.
+  const celebrated = new Set<string>();
+</script>
+
 <script lang="ts">
   import type { Store } from '../data/store.svelte';
   import { tg } from '../lib/telegram';
@@ -21,11 +26,11 @@
   const hasTactics = $derived((d.plan?.tactics?.length ?? 0) > 0);
   const today = $derived(currentWeek(d.plan!.startDate, new Date()));
 
-  const celebrated = new Set<number>();
   let showConfetti = $state(false);
   $effect(() => {
-    if (score >= 85 && !celebrated.has(week)) {
-      celebrated.add(week);
+    const key = `${d.plan?.planId ?? ''}:${week}`;
+    if (score >= 85 && !celebrated.has(key)) {
+      celebrated.add(key);
       const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
       if (!reduced) {
         tg().haptic('success');
@@ -39,9 +44,10 @@
   function toggleTheme() { store.setTheme(scheme === 'dark' ? 'light' : 'dark'); }
   let reflectTimer: ReturnType<typeof setTimeout> | undefined;
   function onReflect(e: Event) {
+    const targetWeek = week; // capture: week may change before the timer fires
     const text = (e.target as HTMLTextAreaElement).value;
     clearTimeout(reflectTimer);
-    reflectTimer = setTimeout(() => store.setReflection(week, text), 500);
+    reflectTimer = setTimeout(() => store.setReflection(targetWeek, text), 500);
   }
   function flushReflect(e: Event) { clearTimeout(reflectTimer); store.setReflection(week, (e.target as HTMLTextAreaElement).value); }
 </script>

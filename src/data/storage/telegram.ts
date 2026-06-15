@@ -54,7 +54,6 @@ export class TelegramCloudAdapter implements StorageAdapter {
     const written = new Set<string>();
     const put = async (k: string, v: string) => { await set(k, v); written.add(k); };
 
-    await put('kd_meta', JSON.stringify(data.meta));
     await put('kd_settings', JSON.stringify(data.settings));
 
     if (data.plan) {
@@ -86,5 +85,8 @@ export class TelegramCloudAdapter implements StorageAdapter {
 
     const stale = before.filter(k => isDataShard(k) && !written.has(k));
     await del(stale);
+
+    // commit marker LAST: an interrupted save leaves the old kd_meta, so partial data never looks "newest"
+    await put('kd_meta', JSON.stringify(data.meta));
   }
 }

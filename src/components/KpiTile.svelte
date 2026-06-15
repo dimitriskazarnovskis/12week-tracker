@@ -5,8 +5,10 @@
   const pct = $derived(kpiProgress(value, target));
   function onInput(e: Event) {
     if (!onChange) return;
-    const n = Number((e.target as HTMLInputElement).value);
-    onChange(Number.isFinite(n) ? n : 0);
+    const raw = (e.target as HTMLInputElement).value;
+    if (raw === '') return; // clearing the field shouldn't instantly save 0
+    const n = Number(raw);
+    if (Number.isFinite(n)) onChange(Math.max(0, n));
   }
 </script>
 <div class="kpi">
