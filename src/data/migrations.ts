@@ -24,8 +24,12 @@ const steps: Array<(d: any) => any> = [
 
 export function migrate(raw: unknown): AppData {
   const ver = (raw as any)?.meta?.schemaVersion;
+  // Data written by a NEWER app must not be downgraded or replaced with fresh():
+  // the caller shows an error and leaves the stored bytes untouched.
+  if (typeof ver === 'number' && ver > CURRENT_VERSION) throw new Error('newer-schema');
   if (ver === CURRENT_VERSION) {
-    return isAppData(raw) ? (raw as AppData) : fresh();
+    if (!isAppData(raw)) throw new Error('corrupt-data');
+    return raw as AppData;
   }
   let v = (typeof ver === 'number' && Number.isInteger(ver) && ver >= 0) ? Math.min(ver, CURRENT_VERSION) : 0;
   let data: any = raw ?? null;

@@ -1,13 +1,22 @@
 <script module lang="ts">
-  // Session-scoped: survives tab remounts so confetti fires once per week, not on every revisit.
-  const celebrated = new Set<string>();
+  // Persisted per device: confetti fires once per week EVER, not on every app open.
+  const CELEB_KEY = 'kd_celebrated';
+  function loadCelebrated(): Set<string> {
+    try { return new Set(JSON.parse(localStorage.getItem(CELEB_KEY) ?? '[]')); } catch { return new Set(); }
+  }
+  const celebrated = loadCelebrated();
+  function markCelebrated(key: string) {
+    celebrated.add(key);
+    try { localStorage.setItem(CELEB_KEY, JSON.stringify([...celebrated])); } catch {}
+  }
 </script>
 
 <script lang="ts">
+  import { onDestroy } from 'svelte';
   import type { Store } from '../data/store.svelte';
   import { tg } from '../lib/telegram';
   import { resolveTheme, sys } from '../theme/theme.svelte';
-  import { weekScore, currentWeek, tacticsForGoal } from '../data/selectors';
+  import { weekScore, currentWeek, tacticsForGoal, programState, weekRange, formatDay, overallStats } from '../data/selectors';
   import { WEEKS } from '../data/types';
   import AppHeader from '../components/AppHeader.svelte';
   import WeekStrip from '../components/WeekStrip.svelte';
@@ -18,6 +27,7 @@
 
   let { store }: { store: Store } = $props();
   const d = $derived(store.data);
+  // svelte-ignore state_referenced_locally -- intentionally captures the week at mount time
   let week = $state(currentWeek(store.data.plan!.startDate, new Date()));
   const scores = $derived(Array.from({ length: WEEKS }, (_, i) => weekScore(d, i + 1)));
   const score = $derived(weekScore(d, week));
@@ -25,12 +35,16 @@
   const scheme = $derived(resolveTheme(d.settings.theme, sys.scheme) as 'light' | 'dark');
   const hasTactics = $derived((d.plan?.tactics?.length ?? 0) > 0);
   const today = $derived(currentWeek(d.plan!.startDate, new Date()));
+  const pstate = $derived(programState(d.plan!.startDate, new Date()));
+  // Future weeks are view-only: pre-checking week 12 on day one would fake the stats.
+  const locked = $derived(pstate === 'before' || week > today);
+  const range = $derived(weekRange(d.plan!.startDate, week));
 
   let showConfetti = $state(false);
   $effect(() => {
     const key = `${d.plan?.planId ?? ''}:${week}`;
     if (score >= 85 && !celebrated.has(key)) {
-      celebrated.add(key);
+      markCelebrated(key);
       const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
       if (!reduced) {
         tg().haptic('success');
@@ -40,46 +54,82 @@
     }
   });
 
-  function toggle(taskId: string) { tg().haptic('light'); store.toggleTask(week, taskId); }
+  function toggle(taskId: string) {
+    if (locked) return;
+    tg().haptic('light');
+    store.toggleTask(week, taskId);
+  }
   function toggleTheme() { store.setTheme(scheme === 'dark' ? 'light' : 'dark'); }
+
   let reflectTimer: ReturnType<typeof setTimeout> | undefined;
+  let pendingReflect: { week: number; text: string } | null = null;
   function onReflect(e: Event) {
     const targetWeek = week; // capture: week may change before the timer fires
     const text = (e.target as HTMLTextAreaElement).value;
+    pendingReflect = { week: targetWeek, text };
     clearTimeout(reflectTimer);
-    reflectTimer = setTimeout(() => store.setReflection(targetWeek, text), 500);
+    reflectTimer = setTimeout(() => { pendingReflect = null; store.setReflection(targetWeek, text); }, 500);
   }
-  function flushReflect(e: Event) { clearTimeout(reflectTimer); store.setReflection(week, (e.target as HTMLTextAreaElement).value); }
+  function flushReflect(e: Event) {
+    clearTimeout(reflectTimer); pendingReflect = null;
+    store.setReflection(week, (e.target as HTMLTextAreaElement).value);
+  }
+  // The Mini App can be swiped away mid-typing: commit the pending reflection
+  // (and the debounced cloud write) the moment the webview hides or the tab unmounts.
+  function commitPending() {
+    if (reflectTimer) { clearTimeout(reflectTimer); reflectTimer = undefined; }
+    if (pendingReflect) { const p = pendingReflect; pendingReflect = null; store.setReflection(p.week, p.text); }
+    store.flushNow();
+  }
+  $effect(() => {
+    const onHide = () => { if (document.visibilityState === 'hidden') commitPending(); };
+    window.addEventListener('pagehide', commitPending);
+    document.addEventListener('visibilitychange', onHide);
+    return () => { window.removeEventListener('pagehide', commitPending); document.removeEventListener('visibilitychange', onHide); };
+  });
+  onDestroy(commitPending);
 </script>
 
 {#if showConfetti}<Confetti />{/if}
 <AppHeader {scheme} onToggle={toggleTheme} />
-<WeekStrip current={week} {scores} onPick={(w) => (week = w)} />
+<WeekStrip current={week} todayWeek={pstate === 'active' ? today : 0} {scores} onPick={(w) => (week = w)} />
 <main class="bd">
-  <div><div class="eyebrow">{block}</div><h1 class="wk">Неделя {week}</h1></div>
+  <div>
+    <div class="eyebrow">{block}</div>
+    <h1 class="wk">Неделя {week}</h1>
+    <div class="range">{range}</div>
+  </div>
+
+  {#if pstate === 'before'}
+    <div class="notice">Старт программы — {formatDay(d.plan!.startDate)}. Задачи откроются в день старта.</div>
+  {:else if pstate === 'done'}
+    <div class="notice fin">12 недель завершены! Средний балл — {overallStats(d).avgScore}%. Итоги — во вкладке «Прогресс».</div>
+  {:else if locked}
+    <div class="notice">Неделя {week} ({range}) ещё не началась — отметки откроются в её первый день.</div>
+  {/if}
 
   <div class="herorow">
     <ScoreRing value={score} />
     <div class="kpis">
-      {#each d.plan!.goals.slice(0, 2) as g}
+      {#each d.plan!.goals as g (g.id)}
         <KpiTile label={g.metricName} value={d.progress.kpis[`${week}:${g.id}`] ?? 0} target={g.metricTarget}
-          onChange={(v) => store.saveKpi(week, g.id, v)} />
+          readonly={locked} onChange={(v) => store.saveKpi(week, g.id, v)} />
       {/each}
     </div>
   </div>
 
   <div class="sec">Задачи недели</div>
   {#if hasTactics}
-    {#each d.plan!.goals as g}
-      {#each tacticsForGoal(d, g.id) as t}
-        <TaskRow text={t.text} done={!!d.progress.checks[`${week}:${t.id}`]} onToggle={() => toggle(t.id)} />
+    {#each d.plan!.goals as g (g.id)}
+      {#each tacticsForGoal(d, g.id) as t (t.id)}
+        <TaskRow text={t.text} done={!!d.progress.checks[`${week}:${t.id}`]} disabled={locked} onToggle={() => toggle(t.id)} />
       {/each}
     {/each}
   {:else}
     <div class="empty">Задачи на неделю появятся, когда мы настроим план.</div>
   {/if}
 
-  {#if week <= today}
+  {#if week <= today && pstate !== 'before'}
     <div class="sec">Итог недели</div>
     <textarea class="reflect" placeholder="Что зашло, что меняем на следующей неделе?"
       value={d.progress.reflections[`${week}`] ?? ''} oninput={onReflect} onblur={flushReflect}></textarea>
@@ -88,13 +138,16 @@
 
 <style>
   .bd{padding:3px 16px 14px;display:flex;flex-direction:column;gap:12px}
-  .eyebrow{font-size:8.5px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;color:var(--red)}
+  .eyebrow{font-size:11px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;color:var(--red)}
   .wk{font-size:29px;font-weight:800;letter-spacing:-.5px;line-height:1;margin-top:2px}
+  .range{font-size:13px;font-weight:600;color:var(--muted);margin-top:4px}
+  .notice{padding:11px 13px;border-radius:12px;background:var(--red-soft,#FCEAEC);color:var(--ink);font-size:13px;font-weight:600;line-height:1.45}
+  .notice.fin{background:var(--surface);border:1px solid var(--line)}
   .herorow{display:flex;align-items:center;gap:13px}
-  .kpis{display:flex;gap:8px;flex:1}
-  .sec{font-size:9px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;color:var(--muted);margin-top:2px}
-  .empty{padding:18px;text-align:center;color:var(--muted);font-size:12px;background:var(--surface);border:1px solid var(--line);border-radius:12px}
-  .reflect{width:100%;min-height:64px;resize:none;border-radius:12px;border:1px solid var(--line);background:var(--surface);
-    color:var(--ink);font:500 12px Montserrat,sans-serif;padding:11px 13px;line-height:1.5;outline:none}
+  .kpis{display:flex;gap:8px;flex:1;flex-wrap:wrap;min-width:0}
+  .sec{font-size:11px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);margin-top:2px}
+  .empty{padding:18px;text-align:center;color:var(--muted);font-size:13px;background:var(--surface);border:1px solid var(--line);border-radius:12px}
+  .reflect{width:100%;min-height:76px;resize:none;border-radius:12px;border:1px solid var(--line);background:var(--surface);
+    color:var(--ink);font:500 16px Montserrat,sans-serif;padding:11px 13px;line-height:1.5;outline:none}
   .reflect:focus{border-color:var(--red)}
 </style>

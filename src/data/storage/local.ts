@@ -8,6 +8,7 @@ export class LocalStorageAdapter implements StorageAdapter {
     catch { return null; }
   }
   async save(data: AppData): Promise<void> {
-    try { localStorage.setItem(KEY, JSON.stringify(data)); } catch {}
+    // no swallow: quota / private-mode failures must reach the store so the UI can warn
+    localStorage.setItem(KEY, JSON.stringify(data));
   }
 }

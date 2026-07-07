@@ -1,6 +1,5 @@
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap');
 :root, [data-theme="light"] {
-  --bg:#FAFAFA; --surface:#FFFFFF; --ink:#231F20; --muted:#9A9899; --body:#54524F;
+  --bg:#FAFAFA; --surface:#FFFFFF; --ink:#231F20; --muted:#6F6C6D; --body:#54524F;
   --line:#E6E4E1; --red:#D12329; --red-soft:#F4F2EF; --ring-track:#ECEAE7;
   --nav-bg:#FFFFFF; --accent-on-nav:#D12329;
 }
@@ -12,4 +11,6 @@
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 body{font-family:'Montserrat',-apple-system,sans-serif;background:var(--bg);color:var(--ink);
   max-width:480px;margin:0 auto;min-height:100vh}
+/* flex column so BottomNav (margin-top:auto) never floats mid-screen on short pages */
+#app{display:flex;flex-direction:column;min-height:100dvh}
 @media (prefers-reduced-motion: reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}

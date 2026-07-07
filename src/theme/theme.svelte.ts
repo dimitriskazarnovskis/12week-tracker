@@ -11,3 +11,13 @@ export function resolveTheme(pref: ThemePref, system: Scheme): Scheme {
 export function applyTheme(scheme: Scheme) {
   document.documentElement.setAttribute('data-theme', scheme);
 }
+// In a plain browser «Авто» must follow the OS, not default to light.
+// Returns an unsubscribe function; no-op inside Telegram (its colorScheme rules there).
+export function watchSystemScheme(inTelegram: boolean, onChange: (s: Scheme) => void): () => void {
+  if (inTelegram || typeof window.matchMedia !== 'function') return () => {};
+  const mq = window.matchMedia('(prefers-color-scheme: dark)');
+  onChange(mq.matches ? 'dark' : 'light');
+  const h = (e: MediaQueryListEvent) => onChange(e.matches ? 'dark' : 'light');
+  mq.addEventListener?.('change', h);
+  return () => mq.removeEventListener?.('change', h);
+}

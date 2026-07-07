@@ -18,7 +18,13 @@ export function fromImport(text: string): AppData {
   try { parsed = JSON.parse(text); } catch { throw new Error('Файл повреждён: не читается'); }
   if (!looksLikeExportOrAppData(parsed)) throw new Error('Файл не похож на данные дашборда');
   const raw = parsed?.data ?? parsed;
-  const migrated = migrate(raw);
+  let migrated: AppData;
+  try { migrated = migrate(raw); }
+  catch (e) {
+    throw new Error(e instanceof Error && e.message === 'newer-schema'
+      ? 'Файл создан более новой версией приложения — сначала обновите приложение'
+      : 'Файл повреждён: данные внутри не читаются');
+  }
   if (!isAppData(migrated)) throw new Error('Файл не похож на данные дашборда');
   return migrated;
 }

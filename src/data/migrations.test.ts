@@ -25,10 +25,26 @@ describe('migrations + validate', () => {
     expect(isAppData(42)).toBe(false);
     expect(isAppData({})).toBe(false);
   });
-  it('returns valid fresh AppData for future/garbage schema version (no crash)', () => {
-    expect(() => migrate({ meta: { schemaVersion: 99 } })).not.toThrow();
-    expect(isAppData(migrate({ meta: { schemaVersion: 99 } }))).toBe(true);
+  it('REFUSES data from a newer schema version instead of silently downgrading/wiping', () => {
+    expect(() => migrate({ meta: { schemaVersion: 99 } })).toThrow('newer-schema');
+  });
+  it('still tolerates garbage/negative versions by producing fresh data', () => {
     expect(() => migrate({ meta: { schemaVersion: -3 } })).not.toThrow();
     expect(isAppData(migrate({ meta: { schemaVersion: -3 } }))).toBe(true);
+  });
+  it('REFUSES current-version data with a structurally broken plan (no white screen, no wipe)', () => {
+    const bad = migrate(null) as any;
+    bad.plan = { startDate: '2026-06-01' }; // goals/tactics/calendar arrays missing
+    expect(() => migrate(bad)).toThrow('corrupt-data');
+  });
+  it('deep-validates plan interior', () => {
+    const d = migrate(null) as any;
+    d.plan = { planId: 'p', planVersion: 1, clientId: '', startDate: '2026-06-01',
+      goals: [{ id: 'g1', name: 'G', emoji: '🎯', color: 'red', metricName: 'ER', metricTarget: 5 }],
+      tactics: [{ id: 't1', goalId: 'g1', text: 'A' }],
+      calendar: [{ id: 'c1', date: '2026-07-01', type: 'reel', title: 'A', status: 'planned' }] };
+    expect(isAppData(d)).toBe(true);
+    d.plan.calendar[0].type = 'tiktok-dance'; // unknown content type
+    expect(isAppData(d)).toBe(false);
   });
 });

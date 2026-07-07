@@ -3,21 +3,24 @@ import type { AppData, Progress } from '../types';
 import { emptyProgress, WEEKS } from '../types';
 
 function cs(): any { return (globalThis as any)?.Telegram?.WebApp?.CloudStorage ?? null; }
-// Wrap each CloudStorage call so a thrown error OR a callback that never fires
-// (old/unsupported clients) resolves to a fallback instead of hanging forever.
-function guarded<T>(fallback: T, run: (resolve: (v: T) => void) => void): Promise<T> {
-  return new Promise<T>(res => {
+// CloudStorage limit: 4096 chars per value. Enforced before any write in save().
+const MAX_VALUE = 4096;
+// Wrap each CloudStorage call. Errors and never-firing callbacks (old clients,
+// dead network) REJECT — callers must be able to tell "cloud failed" from "cloud empty",
+// otherwise a flaky read looks like a fresh account and triggers re-setup over live data.
+function guarded<T>(run: (resolve: (v: T) => void, reject: (e: unknown) => void) => void): Promise<T> {
+  return new Promise<T>((res, rej) => {
     let done = false;
-    const finish = (v: T) => { if (!done) { done = true; res(v); } };
-    const timer = setTimeout(() => finish(fallback), 3000);
-    try { run(v => { clearTimeout(timer); finish(v); }); }
-    catch { clearTimeout(timer); finish(fallback); }
+    const ok = (v: T) => { if (!done) { done = true; clearTimeout(timer); res(v); } };
+    const fail = (e: unknown) => { if (!done) { done = true; clearTimeout(timer); rej(e instanceof Error ? e : new Error(String(e))); } };
+    const timer = setTimeout(() => fail(new Error('cloud-timeout')), 3000);
+    try { run(ok, fail); } catch (e) { fail(e); }
   });
 }
-const get = (k: string) => guarded('', res => cs().getItem(k, (_e: any, v: string) => res(v ?? '')));
-const set = (k: string, v: string) => guarded<void>(undefined, res => cs().setItem(k, v, () => res(undefined)));
-const keys = () => guarded<string[]>([], res => cs().getKeys((_e: any, k: string[]) => res(k ?? [])));
-const del = (ks: string[]) => ks.length ? guarded<void>(undefined, res => cs().removeItems(ks, () => res(undefined))) : Promise.resolve();
+const get = (k: string) => guarded<string>((res, rej) => cs().getItem(k, (e: any, v: string) => e ? rej(e) : res(v ?? '')));
+const set = (k: string, v: string) => guarded<void>((res, rej) => cs().setItem(k, v, (e: any) => e ? rej(e) : res(undefined)));
+const keys = () => guarded<string[]>((res, rej) => cs().getKeys((e: any, k: string[]) => e ? rej(e) : res(k ?? [])));
+const del = (ks: string[]) => ks.length ? guarded<void>((res, rej) => cs().removeItems(ks, (e: any) => e ? rej(e) : res(undefined))) : Promise.resolve();
 
 const monthOf = (iso: string) => iso.slice(0, 7);
 function safeParse<T>(raw: string, fallback: T): T { try { return raw ? (JSON.parse(raw) as T) : fallback; } catch { return fallback; } }
@@ -50,25 +53,23 @@ export class TelegramCloudAdapter implements StorageAdapter {
 
   async save(data: AppData): Promise<void> {
     if (!cs()) return;
-    const before = await keys();
-    const written = new Set<string>();
-    const put = async (k: string, v: string) => { await set(k, v); written.add(k); };
-
-    await put('kd_settings', JSON.stringify(data.settings));
+    // Build every key/value pair up-front: if anything is oversized, fail BEFORE the first write
+    // so the cloud never holds a partial state (kd_meta would still claim the old, consistent one).
+    const pairs: Array<[string, string]> = [['kd_settings', JSON.stringify(data.settings)]];
 
     if (data.plan) {
       const { calendar, ...core } = data.plan;
-      await put('kd_plan', JSON.stringify(core));
+      pairs.push(['kd_plan', JSON.stringify(core)]);
       const byMonth: Record<string, any[]> = {};
       for (const e of calendar) (byMonth[monthOf(e.date)] ??= []).push(e);
       for (const [m, list] of Object.entries(byMonth)) {
         let chunk: any[] = [], idx = 0;
-        const flush = async () => { await put(`kd_cal_${m}_${idx}`, JSON.stringify(chunk)); idx++; chunk = []; };
+        const flush = () => { pairs.push([`kd_cal_${m}_${idx}`, JSON.stringify(chunk)]); idx++; chunk = []; };
         for (const entry of list) {
-          if (chunk.length > 0 && JSON.stringify([...chunk, entry]).length > 4000) await flush();
+          if (chunk.length > 0 && JSON.stringify([...chunk, entry]).length > 4000) flush();
           chunk.push(entry);
         }
-        if (chunk.length) await flush();
+        if (chunk.length) flush();
       }
     }
 
@@ -80,13 +81,24 @@ export class TelegramCloudAdapter implements StorageAdapter {
       if (tasks.length) shard.tasks = tasks;
       if (Object.keys(kpis).length) shard.kpis = kpis;
       if (reflection) shard.reflection = reflection;
-      if (Object.keys(shard).length) await put(`kd_prog_w${w}`, JSON.stringify(shard));
+      if (Object.keys(shard).length) pairs.push([`kd_prog_w${w}`, JSON.stringify(shard)]);
     }
+
+    const oversized = pairs.find(([, v]) => v.length > MAX_VALUE);
+    if (oversized) throw new Error(`cloud-value-too-large:${oversized[0]}`);
+
+    // Stale-write guard: another device may have saved a newer snapshot since we loaded.
+    const remoteMeta = safeParse<any>(await get('kd_meta'), null);
+    if (remoteMeta?.updatedAt && remoteMeta.updatedAt > data.meta.updatedAt) return;
+
+    const before = await keys();
+    const written = new Set<string>();
+    for (const [k, v] of pairs) { await set(k, v); written.add(k); }
 
     const stale = before.filter(k => isDataShard(k) && !written.has(k));
     await del(stale);
 
     // commit marker LAST: an interrupted save leaves the old kd_meta, so partial data never looks "newest"
-    await put('kd_meta', JSON.stringify(data.meta));
+    await set('kd_meta', JSON.stringify(data.meta));
   }
 }

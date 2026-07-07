@@ -1,47 +1,53 @@
-# Svelte + TS + Vite
+# Kazarnovskis Dashboard — трекер «12 недель»
 
-This template should help get you started developing with Svelte and TypeScript in Vite.
+Веб-приложение для клиентов Dr. Kazarnovskis & Partners: маркетинговые цели на 12 недель по методу Брайана Морана («The 12 Week Year»), еженедельные задачи, показатели (KPI), контент-календарь и итоги недели. Язык интерфейса — русский. Работает как Telegram Mini App и в обычном браузере.
 
-## Recommended IDE Setup
+## Технологии
 
-[VS Code](https://code.visualstudio.com/) + [Svelte](https://marketplace.visualstudio.com/items?itemName=svelte.svelte-vscode).
+Svelte 5 (runes) + TypeScript + Vite. Шрифт Montserrat самохостится (`@fontsource/montserrat`) — внешних запросов к Google Fonts нет (GDPR).
 
-## Need an official Svelte framework?
+## Команды
 
-Check out [SvelteKit](https://github.com/sveltejs/kit#readme), which is also powered by Vite. Deploy anywhere with its serverless-first approach and adapt to various platforms, with out of the box support for TypeScript, SCSS, and Less, and easily-added support for mdsvex, GraphQL, PostCSS, Tailwind CSS, and more.
-
-## Technical considerations
-
-**Why use this over SvelteKit?**
-
-- It brings its own routing solution which might not be preferable for some users.
-- It is first and foremost a framework that just happens to use Vite under the hood, not a Vite app.
-
-This template contains as little as possible to get started with Vite + TypeScript + Svelte, while taking into account the developer experience with regards to HMR and intellisense. It demonstrates capabilities on par with the other `create-vite` templates and is a good starting point for beginners dipping their toes into a Vite + Svelte project.
-
-Should you later need the extended capabilities and extensibility provided by SvelteKit, the template has been structured similarly to SvelteKit so that it is easy to migrate.
-
-**Why `global.d.ts` instead of `compilerOptions.types` inside `jsconfig.json` or `tsconfig.json`?**
-
-Setting `compilerOptions.types` shuts out all other types not explicitly listed in the configuration. Using triple-slash references keeps the default TypeScript setting of accepting type information from the entire workspace, while also adding `svelte` and `vite/client` type information.
-
-**Why include `.vscode/extensions.json`?**
-
-Other templates indirectly recommend extensions via the README, but this file allows VS Code to prompt the user to install the recommended extension upon opening the project.
-
-**Why enable `allowJs` in the TS template?**
-
-While `allowJs: false` would indeed prevent the use of `.js` files in the project, it does not prevent the use of JavaScript syntax in `.svelte` files. In addition, it would force `checkJs: false`, bringing the worst of both worlds: not being able to guarantee the entire codebase is TypeScript, and also having worse typechecking for the existing JavaScript. In addition, there are valid use cases in which a mixed codebase may be relevant.
-
-**Why is HMR not preserving my local component state?**
-
-HMR state preservation comes with a number of gotchas! It has been disabled by default in both `svelte-hmr` and `@sveltejs/vite-plugin-svelte` due to its often surprising behavior. You can read the details [here](https://github.com/rixo/svelte-hmr#svelte-hmr).
-
-If you have state that's important to retain within a component, consider creating an external store which would not be replaced by HMR.
-
-```ts
-// store.ts
-// An extremely simple external store
-import { writable } from 'svelte/store'
-export default writable(0)
+```bash
+npm install        # один раз
+npm run dev        # локальный запуск: http://localhost:5173
+npm test           # тесты (vitest)
+npm run check      # проверка типов (svelte-check + tsc)
+npm run build      # сборка в dist/
 ```
+
+## Как хранятся данные
+
+- **Источник правды на устройстве** — `localStorage`, ключ `kazdash`.
+- **Облачная копия** — Telegram CloudStorage (только внутри Telegram): ключи `kd_meta`, `kd_settings`, `kd_plan`, `kd_cal_<месяц>_<n>`, `kd_prog_w<неделя>`. Лимит Telegram 4096 символов на значение соблюдается принудительно: слишком большой снимок не пишется вовсе (никаких частичных состояний), `kd_meta` пишется последним как маркер целостности, устаревшая запись не затирает более новую (сравнение `updatedAt`).
+- Черновик мастера настройки — `kd_setup_draft`, отпразднованные недели (конфетти) — `kd_celebrated`.
+- Резервная копия: Профиль → «Выгрузить в файл» (браузер) / «Скопировать резервную копию» (Telegram, через буфер обмена).
+
+## Деплой как Telegram Mini App (чек-лист)
+
+1. `npm run build` → содержимое `dist/` выложить на любой статический HTTPS-хостинг (GitHub Pages / Cloudflare Pages / Netlify).
+2. В @BotFather: создать бота → `/newapp` (или `/setmenubutton`) → указать URL хостинга.
+3. Проверить на iPhone и Android: мастер настройки, отметки задач, «Итог недели», выгрузку копии.
+
+Приложение само определяет, где запущено: в браузере облако Telegram и его кнопки просто не используются.
+
+## Структура
+
+```
+src/
+  App.svelte              — корень: загрузка, темы, вкладки, сброс незаписанного при закрытии
+  screens/                — Week / Calendar / Progress / Profile + setup/SetupFlow (мастер)
+  components/             — AppHeader, BottomNav, WeekStrip, ScoreRing, KpiTile, TaskRow, TrendChart, Confetti
+  data/                   — types, store.svelte.ts (состояние + сохранение), selectors (недели/даты/статистика),
+                            migrations, validate (глубокая проверка), exportImport, storage/ (local + telegram)
+  lib/                    — telegram.ts (SDK-обёртка + диалоги showAlert/showConfirm), ids.ts
+  theme/                  — theme.css (токены светлая/тёмная), theme.svelte.ts
+```
+
+Правила, которые уже вшиты в код и которые легко сломать по незнанию:
+
+- `window.alert/confirm` не использовать — только `dialogs.alert/confirm` из `src/lib/telegram.ts` (в Telegram на iPhone системные окна молча не показываются).
+- Файловый download не работает в Telegram — для выгрузки там используется буфер обмена.
+- Будущие недели заблокированы для отметок (`locked` в WeekScreen) — не убирать, иначе статистика теряет смысл.
+- Тексты интерфейса ≥ 10px, поля ввода ≥ 16px (иначе iPhone масштабирует страницу при фокусе).
+- `npm test` и `npm run check` должны быть зелёными перед выдачей клиентам.

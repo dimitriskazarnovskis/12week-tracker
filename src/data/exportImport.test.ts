@@ -22,4 +22,14 @@ describe('export/import', () => {
   it('rejects wrapped object without app field', () => {
     expect(() => fromImport('{"data":{}}')).toThrow();
   });
+  it('rejects an export whose plan is structurally broken (would white-screen the app)', () => {
+    const d: any = migrate(null);
+    d.plan = { startDate: '2026-06-01' }; // not a real plan
+    const text = JSON.stringify({ app: 'kazarnovskis-dashboard', schemaVersion: CURRENT_VERSION, data: d });
+    expect(() => fromImport(text)).toThrow(/повреждён|версией/i);
+  });
+  it('rejects an export from a NEWER app version with a clear message', () => {
+    const text = JSON.stringify({ app: 'kazarnovskis-dashboard', schemaVersion: 99, data: { meta: { schemaVersion: 99 }, progress: {}, settings: {} } });
+    expect(() => fromImport(text)).toThrow(/версией/i);
+  });
 });

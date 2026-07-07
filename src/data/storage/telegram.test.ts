@@ -1,16 +1,24 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { TelegramCloudAdapter } from './telegram';
 import { migrate } from '../migrations';
 
-function mockCloud() {
+function mockCloud(opts: { failGet?: boolean; failSet?: boolean; silent?: boolean } = {}) {
   const mem: Record<string, string> = {};
   return {
     mem,
     api: {
-      setItem: (k: string, v: string, cb?: Function) => { mem[k] = v; cb?.(null, true); },
-      getItem: (k: string, cb: Function) => cb(null, mem[k] ?? ''),
-      getKeys: (cb: Function) => cb(null, Object.keys(mem)),
-      removeItems: (ks: string[], cb?: Function) => { ks.forEach(k => delete mem[k]); cb?.(null, true); },
+      setItem: (k: string, v: string, cb?: Function) => {
+        if (opts.silent) return;
+        if (opts.failSet) { cb?.('ERR', false); return; }
+        mem[k] = v; cb?.(null, true);
+      },
+      getItem: (k: string, cb: Function) => {
+        if (opts.silent) return;
+        if (opts.failGet) { cb('ERR', null); return; }
+        cb(null, mem[k] ?? '');
+      },
+      getKeys: (cb: Function) => { if (!opts.silent) cb(null, Object.keys(mem)); },
+      removeItems: (ks: string[], cb?: Function) => { if (opts.silent) return; ks.forEach(k => delete mem[k]); cb?.(null, true); },
     },
   };
 }
@@ -70,6 +78,48 @@ describe('TelegramCloudAdapter', () => {
     const back: any = await a.load();
     expect(back.plan).toBeNull();
     expect(Object.keys(c.mem)).not.toContain('kd_plan');
+  });
+  it('save rejects on oversized value and writes NOTHING (no partial state)', async () => {
+    const c = mockCloud(); (globalThis as any).Telegram = { WebApp: { CloudStorage: c.api } };
+    const d = migrate(null);
+    d.progress.reflections['1'] = 'х'.repeat(5000); // > 4096 chars in one shard
+    await expect(new TelegramCloudAdapter().save(d)).rejects.toThrow(/too-large/);
+    expect(Object.keys(c.mem)).toHaveLength(0);
+  });
+  it('load rejects on read error instead of pretending cloud is empty', async () => {
+    const c = mockCloud({ failGet: true }); (globalThis as any).Telegram = { WebApp: { CloudStorage: c.api } };
+    await expect(new TelegramCloudAdapter().load()).rejects.toThrow();
+  });
+  it('save rejects when a write fails, and kd_meta is not updated', async () => {
+    const good = mockCloud(); (globalThis as any).Telegram = { WebApp: { CloudStorage: good.api } };
+    const a = new TelegramCloudAdapter();
+    const d = migrate(null); await a.save(d);
+    const metaBefore = good.mem['kd_meta'];
+    const bad = mockCloud({ failSet: true }); bad.mem.kd_meta = metaBefore;
+    (globalThis as any).Telegram = { WebApp: { CloudStorage: bad.api } };
+    const d2 = migrate(null); d2.settings.theme = 'dark'; d2.meta.updatedAt = '2099-01-01T00:00:00.000Z';
+    await expect(a.save(d2)).rejects.toThrow();
+    expect(bad.mem['kd_meta']).toBe(metaBefore);
+  });
+  it('save skips (no-op) when cloud already holds NEWER data', async () => {
+    const c = mockCloud(); (globalThis as any).Telegram = { WebApp: { CloudStorage: c.api } };
+    const a = new TelegramCloudAdapter();
+    const newer = migrate(null); newer.meta.updatedAt = '2099-01-01T00:00:00.000Z'; newer.settings.theme = 'dark';
+    await a.save(newer);
+    const older = migrate(null); older.meta.updatedAt = '2001-01-01T00:00:00.000Z'; older.settings.theme = 'light';
+    await a.save(older); // must not clobber the newer snapshot
+    expect(JSON.parse(c.mem['kd_settings']).theme).toBe('dark');
+    expect(JSON.parse(c.mem['kd_meta']).updatedAt).toBe('2099-01-01T00:00:00.000Z');
+  });
+  it('load rejects on timeout (callback never fires) instead of returning null', async () => {
+    vi.useFakeTimers();
+    try {
+      const c = mockCloud({ silent: true }); (globalThis as any).Telegram = { WebApp: { CloudStorage: c.api } };
+      const p = new TelegramCloudAdapter().load();
+      const assertion = expect(p).rejects.toThrow(/timeout/);
+      await vi.advanceTimersByTimeAsync(3100);
+      await assertion;
+    } finally { vi.useRealTimers(); }
   });
   it('load skips a corrupt shard instead of throwing', async () => {
     const c = mockCloud(); (globalThis as any).Telegram = { WebApp: { CloudStorage: c.api } };
