@@ -2,6 +2,7 @@
   import type { Store } from '../../data/store.svelte';
   import type { Goal, Tactic, GoalColorId } from '../../data/types';
   import { GOAL_COLORS, EMOJIS } from '../../data/types';
+  import { fromImport } from '../../data/exportImport';
   import { genId } from '../../lib/ids';
   import { tg } from '../../lib/telegram';
   import { formatDay } from '../../data/selectors';
@@ -81,6 +82,22 @@
     err = '';
     step += 1;
   }
+  // Consultant hands the client a ready-made plan file: it must be loadable from the
+  // very first screen — before the wizard, otherwise the client fills everything twice.
+  let importErr = $state('');
+  async function onPlanFile(ev: Event) {
+    const input = ev.target as HTMLInputElement;
+    const f = input.files?.[0];
+    if (!f) return;
+    try {
+      const data = fromImport(await f.text());
+      try { localStorage.removeItem(DRAFT_KEY); } catch {}
+      tg().closingConfirmation(false);
+      await store.importData(data);
+    } catch (e) { importErr = String((e as Error).message); }
+    finally { input.value = ''; }
+  }
+
   function finish() {
     if (!startDate) { err = 'Укажите дату старта.'; return; }
     const snapGoals = ($state.snapshot(goals) as Goal[]).map((g) => ({ ...g, name: g.name.trim(), metricName: g.metricName.trim() }));
@@ -105,6 +122,8 @@
       <div class="hrow"><span class="n">4</span><p><b>Итог недели</b> — пара фраз в конце недели: что сработало, что меняем.</p></div>
     </div>
     <button class="btn" onclick={() => (step = 0)}>Начать настройку · 2–3 минуты</button>
+    <label class="ghost">Получили файл плана от консультанта? Загрузить<input type="file" accept="application/json" hidden onchange={onPlanFile} /></label>
+    {#if importErr}<div class="err" role="alert">{importErr}</div>{/if}
 
   {:else if step === 0}
     <h1>Цели на 12 недель</h1>
@@ -193,6 +212,7 @@
   .trow{display:flex;gap:6px;align-items:center}
   .addt{align-self:flex-start;border:none;background:none;color:var(--red);font:700 13px Montserrat,sans-serif;cursor:pointer;padding:8px 0;min-height:40px}
   .err{padding:11px 13px;border-radius:10px;background:var(--red-soft);color:var(--red);font-size:13px;font-weight:700;line-height:1.45}
+  .ghost{text-align:center;color:var(--muted);font-size:13px;font-weight:600;cursor:pointer;padding:10px;min-height:40px;text-decoration:underline;text-underline-offset:3px}
   .hrow{display:flex;gap:11px;align-items:flex-start}
   .hrow .n{flex-shrink:0;width:26px;height:26px;border-radius:50%;background:var(--red);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800}
   .hrow p{font-size:14px;line-height:1.5;color:var(--body);margin-top:2px}
