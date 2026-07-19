@@ -5,8 +5,10 @@ export type Scheme = 'light' | 'dark';
 // so logos and theme-aware UI re-render live, not just on manual toggle.
 export const sys = $state<{ scheme: Scheme }>({ scheme: 'light' });
 
-export function resolveTheme(pref: ThemePref, system: Scheme): Scheme {
-  return pref === 'auto' ? system : pref;
+// Решение Дмитрия (2026-07-19): «Авто» убрано — светлая по умолчанию, тёмная по явному выбору.
+// Второй аргумент сохранён, чтобы не трогать все места вызова; легаси-'auto' в данных = светлая.
+export function resolveTheme(pref: ThemePref, _system?: Scheme): Scheme {
+  return pref === 'dark' ? 'dark' : 'light';
 }
 export function applyTheme(scheme: Scheme) {
   document.documentElement.setAttribute('data-theme', scheme);

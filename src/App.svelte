@@ -4,7 +4,7 @@
   import { createStore } from './data/store.svelte';
   import { localAdapter, cloudAdapter } from './data/storage';
   import { tg } from './lib/telegram';
-  import { resolveTheme, applyTheme, sys, watchSystemScheme } from './theme/theme.svelte';
+  import { resolveTheme, applyTheme } from './theme/theme.svelte';
   import BottomNav from './components/BottomNav.svelte';
   import WeekScreen from './screens/WeekScreen.svelte';
   import CalendarScreen from './screens/CalendarScreen.svelte';
@@ -17,24 +17,17 @@
   let tab = $state<'week' | 'calendar' | 'progress' | 'report' | 'profile'>('week');
 
   function syncTheme() {
-    applyTheme(resolveTheme(store.data.settings.theme, sys.scheme));
+    applyTheme(resolveTheme(store.data.settings.theme));
   }
   onMount(() => {
     tg().init();
-    const inTelegram = tg().isTMA();
-    if (inTelegram) {
-      sys.scheme = tg().colorScheme();
-      tg().onThemeChanged(() => { sys.scheme = tg().colorScheme(); });
-    }
-    const unwatch = watchSystemScheme(inTelegram, s => { sys.scheme = s; });
     store.load();
-    return unwatch;
   });
   // Theme follows settings only after load: the pre-paint guard in index.html must not
   // be overwritten with defaults while data is still loading.
   $effect(() => {
     if (store.status !== 'ready') return;
-    void store.data.settings.theme; void sys.scheme;
+    void store.data.settings.theme;
     syncTheme();
   });
   // The webview can be dismissed at any moment: push pending cloud writes out immediately.

@@ -8,7 +8,7 @@ export const CURRENT_VERSION = 1;
 function fresh(): AppData {
   const ts = now();
   return { meta: { schemaVersion: CURRENT_VERSION, createdAt: ts, updatedAt: ts },
-    plan: null, progress: emptyProgress(), settings: { theme: 'auto', lang: 'ru' } };
+    plan: null, progress: emptyProgress(), settings: { theme: 'light', lang: 'ru' } };
 }
 
 const steps: Array<(d: any) => any> = [

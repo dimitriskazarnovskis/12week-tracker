@@ -13,7 +13,7 @@
   const scheme = $derived(resolveTheme(d.settings.theme, sys.scheme) as 'light' | 'dark');
   const inTelegram = tg().isTMA();
   const themes: { id: ThemePref; label: string }[] = [
-    { id: 'auto', label: 'Авто' }, { id: 'light', label: 'Светлая' }, { id: 'dark', label: 'Тёмная' },
+    { id: 'light', label: 'Светлая' }, { id: 'dark', label: 'Тёмная' },
   ];
 
   let editingId = $state<string | null>(null);
@@ -85,7 +85,8 @@
     <div class="cl">Тема</div>
     <div class="seg">
       {#each themes as t}
-        <button class:act={d.settings.theme === t.id} onclick={() => store.setTheme(t.id)}>{t.label}</button>
+        <!-- легаси-«авто» из старых данных подсвечивает «Светлая» -->
+        <button class:act={(d.settings.theme === 'dark') === (t.id === 'dark')} onclick={() => store.setTheme(t.id)}>{t.label}</button>
       {/each}
     </div>
   </div>

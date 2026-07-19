@@ -7,12 +7,11 @@
     <title>Дашборд · Dr. Kazarnovskis & Partners</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script>
-      // Set theme before first paint to avoid a light flash for dark-mode users.
+      // Set theme before first paint. Light is the default; dark only when explicitly chosen.
       try {
         var t = JSON.parse(localStorage.getItem('kazdash') || 'null');
         var pref = t && t.settings && t.settings.theme;
-        var s = (window.Telegram && Telegram.WebApp && Telegram.WebApp.colorScheme) || 'light';
-        document.documentElement.setAttribute('data-theme', (!pref || pref === 'auto') ? s : pref);
+        document.documentElement.setAttribute('data-theme', pref === 'dark' ? 'dark' : 'light');
       } catch (e) {}
     </script>
   </head>
