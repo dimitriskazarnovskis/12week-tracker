@@ -10,7 +10,7 @@
   const d = $derived(store.data);
   const scheme = $derived(resolveTheme(d.settings.theme, sys.scheme) as 'light' | 'dark');
   const icon: Record<ContentType, string> = { reel: '🎬', carousel: '🎠', story: '📱', post: '📷' };
-  const typeName: Record<ContentType, string> = { reel: 'Реил', carousel: 'Карусель', story: 'Сторис', post: 'Пост' };
+  const typeName: Record<ContentType, string> = { reel: 'Рилс', carousel: 'Карусель', story: 'Сторис', post: 'Пост' };
   const label: Record<EntryStatus, string> = { planned: 'Запланировано', ready: 'Готово', published: 'Опубликовано' };
   const nextStatus: Record<EntryStatus, EntryStatus> = { planned: 'ready', ready: 'published', published: 'planned' };
   const entries = $derived([...(d.plan?.calendar ?? [])].sort((a, b) => a.date.localeCompare(b.date)));
@@ -58,7 +58,7 @@
         </div>
       </div>
       <label class="lb" for="cal-title">Что публикуем</label>
-      <input id="cal-title" class="f" placeholder="Например: Реил про отзыв клиента" bind:value={fTitle} />
+      <input id="cal-title" class="f" placeholder="Например: Рилс про отзыв клиента" bind:value={fTitle} />
       {#if fErr}<div class="err" role="alert">{fErr}</div>{/if}
       <button class="btn" onclick={addEntry}>Добавить в план</button>
     </div>
