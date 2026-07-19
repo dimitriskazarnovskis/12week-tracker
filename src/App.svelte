@@ -9,11 +9,12 @@
   import WeekScreen from './screens/WeekScreen.svelte';
   import CalendarScreen from './screens/CalendarScreen.svelte';
   import ProgressScreen from './screens/ProgressScreen.svelte';
+  import ReportScreen from './screens/ReportScreen.svelte';
   import ProfileScreen from './screens/ProfileScreen.svelte';
   import SetupFlow from './screens/setup/SetupFlow.svelte';
 
   const store = createStore(localAdapter(), cloudAdapter());
-  let tab = $state<'week' | 'calendar' | 'progress' | 'profile'>('week');
+  let tab = $state<'week' | 'calendar' | 'progress' | 'report' | 'profile'>('week');
 
   function syncTheme() {
     applyTheme(resolveTheme(store.data.settings.theme, sys.scheme));
@@ -61,6 +62,7 @@
   {#if tab === 'week'}<WeekScreen {store} />{/if}
   {#if tab === 'calendar'}<CalendarScreen {store} />{/if}
   {#if tab === 'progress'}<ProgressScreen {store} />{/if}
+  {#if tab === 'report'}<ReportScreen {store} />{/if}
   {#if tab === 'profile'}<ProfileScreen {store} />{/if}
   <BottomNav active={tab} onNav={(t) => tab = t} />
 {/if}

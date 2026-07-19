@@ -5,7 +5,7 @@ export type EntryStatus = 'planned' | 'ready' | 'published';
 export type ThemePref = 'auto' | 'light' | 'dark';
 
 export const WEEKS = 12;
-export const APP_VERSION = '1.2.0';
+export const APP_VERSION = '1.3.0';
 export const GOAL_COLORS: Record<GoalColorId, { hex: string; on: string }> = {
   red:    { hex: '#D12329', on: '#FCEAEC' },
   ink:    { hex: '#231F20', on: '#F0EFEE' },
@@ -25,15 +25,23 @@ export interface Plan {
   planId: ID; planVersion: number; clientId: string; startDate: string;
   goals: Goal[]; tactics: Tactic[]; calendar: CalendarEntry[]; vision?: Vision;
 }
+// Месячный отчёт (вкладка «Отчёт», зеркало Ergebnis-Dashboard без денежного блока).
+// Ключ — 'YYYY-MM' или 'start' (точка А до начала программы).
+export interface MonthlyReport {
+  followers?: number; views?: number; reach?: number;
+  likes?: number; comments?: number; saves?: number; // saves = сохранения + пересылки
+  profileVisits?: number; inquiries?: number; consults?: number; clients?: number;
+}
 export interface Progress {
   checks: Record<string, boolean>;
   kpis: Record<string, number>;
   reflections: Record<string, string>;
+  monthly?: Record<string, MonthlyReport>;
 }
 export interface Settings { theme: ThemePref; lang: 'ru'; }
 export interface Meta { schemaVersion: number; createdAt: string; updatedAt: string; }
 export interface AppData { meta: Meta; plan: Plan | null; progress: Progress; settings: Settings; }
 
-export function emptyProgress(): Progress { return { checks: {}, kpis: {}, reflections: {} }; }
+export function emptyProgress(): Progress { return { checks: {}, kpis: {}, reflections: {}, monthly: {} }; }
 export const checkKey = (week: number, taskId: ID) => `${week}:${taskId}`;
 export const kpiKey = (week: number, goalId: ID) => `${week}:${goalId}`;

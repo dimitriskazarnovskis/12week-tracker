@@ -2,7 +2,7 @@
   import type { Store } from '../data/store.svelte';
   import type { AppData, ThemePref } from '../data/types';
   import { APP_VERSION } from '../data/types';
-  import { toExport, fromImport } from '../data/exportImport';
+  import { toExport, parseImportFile } from '../data/exportImport';
   import { tacticsForGoal } from '../data/selectors';
   import { tg, dialogs } from '../lib/telegram';
   import { resolveTheme, sys } from '../theme/theme.svelte';
@@ -50,9 +50,15 @@
     const f = input.files?.[0];
     if (!f) return;
     try {
-      const data = fromImport(await f.text());
-      if (await dialogs.confirm('Заменить все текущие данные данными из файла? Это необратимо.')) {
-        await store.importData(data);
+      const parsed = parseImportFile(await f.text());
+      if (parsed.kind === 'update') {
+        if (await dialogs.confirm('Применить обновление от консультанта? Ваши отметки и записи сохранятся.')) {
+          await store.applyUpdate(parsed.update);
+          dataMsg = (parsed.update.note ? parsed.update.note + ' — ' : '') + 'Обновление применено ✓';
+          dataMsgBad = false;
+        }
+      } else if (await dialogs.confirm('Заменить все текущие данные данными из файла? Это необратимо.')) {
+        await store.importData(parsed.data);
         dataMsg = 'Данные заменены ✓'; dataMsgBad = false;
       }
     } catch (e) { dataMsg = String((e as Error).message); dataMsgBad = true; }

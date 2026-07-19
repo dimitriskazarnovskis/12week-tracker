@@ -90,6 +90,22 @@ describe('store', () => {
     await s.removeCalendarEntry(id);
     expect(s.data.plan!.calendar).toHaveLength(0);
   });
+  it('applyUpdate merges consultant data WITHOUT touching client checks', async () => {
+    const s = createStore(new LocalStorageAdapter(), null); await s.load();
+    s.setPlan({ planId: 'p', planVersion: 1, clientId: '', startDate: '2026-07-27',
+      goals: [], tactics: [{ id: 't1', goalId: 'g1', text: 'A' }], calendar: [] });
+    await s.toggleTask(1, 't1');
+    await s.setMonthly('start', { followers: 8322 });
+    await s.applyUpdate({
+      monthly: { '2026-08': { followers: 8600, reach: 12000 } },
+      calendarAdd: [{ date: '2026-08-27', type: 'reel', title: 'Новый Reel от консультанта' }],
+    });
+    expect(s.data.progress.checks['1:t1']).toBe(true); // отметки клиента целы
+    expect(s.data.progress.monthly?.['start']?.followers).toBe(8322);
+    expect(s.data.progress.monthly?.['2026-08']?.reach).toBe(12000);
+    expect(s.data.plan!.calendar).toHaveLength(1);
+    expect(s.data.plan!.calendar[0].status).toBe('planned');
+  });
   it('cloud save failure flips cloudOk to false', async () => {
     const cloud: StorageAdapter = { load: async () => null, save: async () => { throw new Error('x'); } };
     const s = createStore(new LocalStorageAdapter(), cloud);

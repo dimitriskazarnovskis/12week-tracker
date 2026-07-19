@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { weekScore, currentWeek, kpiProgress, overallStats, programState, weekRange, formatDay, lastKpi, programEndISO } from './selectors';
+import { weekScore, currentWeek, kpiProgress, overallStats, programState, weekRange, formatDay, lastKpi, programEndISO, reportMonths, monthLabel, growthHealth } from './selectors';
 import type { AppData } from './types';
 import { emptyProgress } from './types';
 
@@ -59,6 +59,23 @@ describe('selectors', () => {
   });
   it('programEndISO = start + 83 days', () => {
     expect(programEndISO('2026-07-13')).toBe('2026-10-04');
+  });
+  it('reportMonths: точка А + месяцы от старта до сегодня', () => {
+    expect(reportMonths('2026-07-27', new Date(2026, 8, 5))).toEqual(['start', '2026-07', '2026-08', '2026-09']);
+    expect(monthLabel('start')).toBe('Точка А (старт)');
+    expect(monthLabel('2026-08')).toBe('Август 2026');
+  });
+  it('growthHealth: формулы Ergebnis-Dashboard', () => {
+    expect(growthHealth({})).toBeNull(); // без охвата индекс не считается
+    // «мёртвый аккаунт» из инструкции: лайки без комментариев/сохранений → красная зона
+    const dead = growthHealth({ reach: 50000, likes: 2000, comments: 0, saves: 0, followers: 8322 }, { followers: 8322 });
+    expect(dead).toBeLessThan(45);
+    // здоровый: ER 4%, комментарии 3% от лайков, вдумчивые 20%+, подписка 0.6% от охвата
+    const healthy = growthHealth(
+      { reach: 10000, likes: 300, comments: 20, saves: 80, followers: 8422 },
+      { followers: 8362 }
+    );
+    expect(healthy).toBeGreaterThanOrEqual(70);
   });
   it('overallStats computes averages over weeks with activity', () => {
     const d = structuredClone(base);

@@ -24,7 +24,7 @@ const del = (ks: string[]) => ks.length ? guarded<void>((res, rej) => cs().remov
 
 const monthOf = (iso: string) => iso.slice(0, 7);
 function safeParse<T>(raw: string, fallback: T): T { try { return raw ? (JSON.parse(raw) as T) : fallback; } catch { return fallback; } }
-const isDataShard = (k: string) => k === 'kd_plan' || k.startsWith('kd_cal_') || /^kd_prog_w\d+$/.test(k);
+const isDataShard = (k: string) => k === 'kd_plan' || k === 'kd_monthly' || k.startsWith('kd_cal_') || /^kd_prog_w\d+$/.test(k);
 
 export class TelegramCloudAdapter implements StorageAdapter {
   async load(): Promise<unknown | null> {
@@ -41,6 +41,7 @@ export class TelegramCloudAdapter implements StorageAdapter {
       plan.calendar = cal;
     }
     const progress: Progress = emptyProgress();
+    progress.monthly = safeParse<any>(await get('kd_monthly'), {});
     for (let w = 1; w <= WEEKS; w++) {
       const raw = await get(`kd_prog_w${w}`); if (!raw) continue;
       const wk = safeParse<any>(raw, null); if (!wk) continue;
@@ -82,6 +83,9 @@ export class TelegramCloudAdapter implements StorageAdapter {
       if (Object.keys(kpis).length) shard.kpis = kpis;
       if (reflection) shard.reflection = reflection;
       if (Object.keys(shard).length) pairs.push([`kd_prog_w${w}`, JSON.stringify(shard)]);
+    }
+    if (data.progress.monthly && Object.keys(data.progress.monthly).length) {
+      pairs.push(['kd_monthly', JSON.stringify(data.progress.monthly)]);
     }
 
     const oversized = pairs.find(([, v]) => v.length > MAX_VALUE);

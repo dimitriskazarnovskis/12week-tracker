@@ -1,5 +1,6 @@
 import type { StorageAdapter } from './storage/adapter';
-import type { AppData, CalendarEntry, Goal, Plan, ThemePref } from './types';
+import type { AppData, CalendarEntry, Goal, MonthlyReport, Plan, ThemePref } from './types';
+import type { ConsultantUpdate } from './exportImport';
 import { checkKey, kpiKey, WEEKS } from './types';
 import { migrate, CURRENT_VERSION } from './migrations';
 import { genId, now } from '../lib/ids';
@@ -129,6 +130,28 @@ export function createStore(local: StorageAdapter, cloud: StorageAdapter | null)
       if (!data.plan) return;
       data.plan.tactics = data.plan.tactics.filter(t => t.id !== id);
       for (let w = 1; w <= WEEKS; w++) delete data.progress.checks[checkKey(w, id)]; // no orphan checks
+      await persist();
+    },
+
+    // --- monthly report («Отчёт»: было/стало + здоровье роста, без денежного блока) ---
+    async setMonthly(month: string, patch: Partial<MonthlyReport>) {
+      if (!data.progress.monthly) data.progress.monthly = {};
+      data.progress.monthly[month] = { ...data.progress.monthly[month], ...patch };
+      await persist();
+    },
+    // Файл-обновление от консультанта: ДОБАВЛЯЕТ данные, не трогая отметки/рефлексии клиента.
+    async applyUpdate(u: ConsultantUpdate) {
+      if (u.monthly) {
+        if (!data.progress.monthly) data.progress.monthly = {};
+        for (const [m, rep] of Object.entries(u.monthly)) {
+          data.progress.monthly[m] = { ...data.progress.monthly[m], ...rep };
+        }
+      }
+      if (u.calendarAdd?.length && data.plan) {
+        for (const e of u.calendarAdd) {
+          data.plan.calendar.push({ status: 'planned', ...e, id: genId('c') });
+        }
+      }
       await persist();
     },
 

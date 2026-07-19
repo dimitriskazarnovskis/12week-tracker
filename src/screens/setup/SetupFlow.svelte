@@ -2,7 +2,7 @@
   import type { Store } from '../../data/store.svelte';
   import type { Goal, Tactic, GoalColorId } from '../../data/types';
   import { GOAL_COLORS, EMOJIS } from '../../data/types';
-  import { fromImport } from '../../data/exportImport';
+  import { parseImportFile } from '../../data/exportImport';
   import { genId } from '../../lib/ids';
   import { tg } from '../../lib/telegram';
   import { formatDay } from '../../data/selectors';
@@ -90,10 +90,11 @@
     const f = input.files?.[0];
     if (!f) return;
     try {
-      const data = fromImport(await f.text());
+      const parsed = parseImportFile(await f.text());
+      if (parsed.kind === 'update') { importErr = 'Это файл-обновление. Сначала загрузите основной файл плана.'; return; }
       try { localStorage.removeItem(DRAFT_KEY); } catch {}
       tg().closingConfirmation(false);
-      await store.importData(data);
+      await store.importData(parsed.data);
     } catch (e) { importErr = String((e as Error).message); }
     finally { input.value = ''; }
   }

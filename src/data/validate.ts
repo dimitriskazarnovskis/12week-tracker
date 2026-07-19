@@ -29,6 +29,7 @@ export function isAppData(v: unknown): v is AppData {
   if (!d.progress.checks || typeof d.progress.checks !== 'object') return false;
   if (!d.progress.kpis || typeof d.progress.kpis !== 'object') return false;
   if (!d.progress.reflections || typeof d.progress.reflections !== 'object') return false;
+  if (d.progress.monthly != null && typeof d.progress.monthly !== 'object') return false;
   if (!d.settings || typeof d.settings.theme !== 'string') return false;
   if (d.plan !== null && !isPlan(d.plan)) return false;
   return true;

@@ -1,4 +1,4 @@
-import type { AppData, ID } from './types';
+import type { AppData, ID, MonthlyReport } from './types';
 import { WEEKS, checkKey } from './types';
 
 export function tacticsForGoal(d: AppData, goalId: ID) {
@@ -49,6 +49,38 @@ export function programEndISO(startDate: string): string {
   d.setDate(d.getDate() + WEEKS * 7 - 1);
   const c = new Date(d); c.setMinutes(c.getMinutes() - c.getTimezoneOffset());
   return c.toISOString().slice(0, 10);
+}
+// Месяцы программы для вкладки «Отчёт»: 'start' (точка А) + календарные месяцы от старта до сегодня.
+export function reportMonths(startDate: string, now: Date): string[] {
+  const out = ['start'];
+  const start = new Date(startDate + 'T00:00:00');
+  const cur = new Date(start.getFullYear(), start.getMonth(), 1);
+  const end = new Date(now.getFullYear(), now.getMonth(), 1);
+  while (cur <= end && out.length <= 13) {
+    out.push(`${cur.getFullYear()}-${String(cur.getMonth() + 1).padStart(2, '0')}`);
+    cur.setMonth(cur.getMonth() + 1);
+  }
+  return out;
+}
+export function monthLabel(key: string): string {
+  if (key === 'start') return 'Точка А (старт)';
+  const [y, m] = key.split('-').map(Number);
+  const names = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+  return `${names[m - 1]} ${y}`;
+}
+// «Здоровье роста» 0–100 — формулы из Ergebnis-Dashboard (Dashboard_Anleitung.md):
+// среднее четырёх под-метрик, каждая нормируется к своему «отличному» порогу.
+export function growthHealth(rep: MonthlyReport, prev?: MonthlyReport): number | null {
+  const { reach = 0, likes = 0, comments = 0, saves = 0, followers = 0 } = rep;
+  if (reach <= 0) return null;
+  const interactions = likes + comments + saves;
+  const pct = (v: number, top: number) => Math.max(0, Math.min(100, (v / top) * 100));
+  const er = pct(interactions / reach * 100, 4);                                   // реакции на охват, 100 при 4%
+  const c2l = likes > 0 ? pct(comments / likes * 100, 3) : 0;                      // комментарии к лайкам, 100 при 3%
+  const thoughtful = interactions > 0 ? pct((saves + comments) / interactions * 100, 20) : 0; // вдумчивые реакции, 100 при 20%
+  const newFollowers = prev?.followers != null ? Math.max(0, followers - prev.followers) : 0;
+  const f2r = pct(newFollowers / reach * 100, 0.6);                                // охват → подписка, 100 при 0.6%
+  return Math.round((er + c2l + thoughtful + f2r) / 4);
 }
 export function weekRange(startDate: string, week: number): string {
   const a = new Date(startDate + 'T00:00:00');
