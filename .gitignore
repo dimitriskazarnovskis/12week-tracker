@@ -25,3 +25,8 @@ dist-ssr
 
 .claude/
 .claire/
+
+# secrets must never reach the public repo
+.env
+.env.*
+env/
