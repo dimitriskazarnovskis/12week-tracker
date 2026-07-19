@@ -133,6 +133,12 @@ export function createStore(local: StorageAdapter, cloud: StorageAdapter | null)
       await persist();
     },
 
+    async updateStartDate(startDate: string) {
+      if (!data.plan || !startDate) return;
+      data.plan.startDate = startDate;
+      await persist();
+    },
+
     // --- monthly report («Отчёт»: было/стало + здоровье роста, без денежного блока) ---
     async setMonthly(month: string, patch: Partial<MonthlyReport>) {
       if (!data.progress.monthly) data.progress.monthly = {};

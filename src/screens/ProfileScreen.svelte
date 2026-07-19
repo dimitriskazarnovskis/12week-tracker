@@ -1,9 +1,9 @@
 <script lang="ts">
   import type { Store } from '../data/store.svelte';
   import type { AppData, ThemePref } from '../data/types';
-  import { APP_VERSION } from '../data/types';
+  import { APP_VERSION, EMOJIS } from '../data/types';
   import { toExport, parseImportFile } from '../data/exportImport';
-  import { tacticsForGoal } from '../data/selectors';
+  import { tacticsForGoal, formatDay } from '../data/selectors';
   import { tg, dialogs } from '../lib/telegram';
   import { resolveTheme, sys } from '../theme/theme.svelte';
   import AppHeader from '../components/AppHeader.svelte';
@@ -109,6 +109,12 @@
                 oninput={(e) => store.updateGoal(g.id, { metricTarget: Math.max(0, Number((e.target as HTMLInputElement).value) || 0) })} />
             </div>
           </div>
+          <div class="lb">Эмодзи</div>
+          <div class="emo">
+            {#each EMOJIS as em}
+              <button class="emb" class:sel={g.emoji === em} onclick={() => store.updateGoal(g.id, { emoji: em })} aria-label="Эмодзи {em}" aria-pressed={g.emoji === em}>{em}</button>
+            {/each}
+          </div>
           <div class="lb">Задачи недели</div>
           {#each tacticsForGoal(d, g.id) as t (t.id)}
             <div class="trow">
@@ -127,6 +133,15 @@
       {/if}
     {/each}
   </div>
+
+  {#if d.plan}
+    <div class="card">
+      <div class="cl">Дата старта</div>
+      <input class="f" type="date" value={d.plan.startDate}
+        onchange={(e) => store.updateStartDate((e.target as HTMLInputElement).value)} aria-label="Дата старта программы" />
+      <div class="msg">Сейчас: {formatDay(d.plan.startDate)}. Сдвиг даты пересчитает недели — менять лучше до начала программы.</div>
+    </div>
+  {/if}
 
   <div class="card">
     <div class="cl">Данные</div>
@@ -158,6 +173,9 @@
   .row2{display:flex;gap:8px}
   .col{flex:1;display:flex;flex-direction:column;gap:6px;min-width:0}
   .col.num{max-width:110px}
+  .emo{display:flex;flex-wrap:wrap;gap:6px}
+  .emb{width:38px;height:38px;border:1px solid var(--line);background:var(--surface);border-radius:9px;font-size:17px;cursor:pointer}
+  .emb.sel{border-color:var(--red);background:var(--red-soft)}
   .trow{display:flex;gap:6px;align-items:center}
   .x{border:none;background:none;color:var(--red);font-size:22px;cursor:pointer;line-height:1;min-width:40px;min-height:40px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
   .addt{align-self:flex-start;border:none;background:none;color:var(--red);font:700 13px Montserrat,sans-serif;cursor:pointer;padding:8px 0;min-height:40px}

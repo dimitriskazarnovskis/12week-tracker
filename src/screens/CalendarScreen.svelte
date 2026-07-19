@@ -22,6 +22,18 @@
   let fTitle = $state('');
   let fErr = $state('');
 
+  // редактирование существующей записи по нажатию на неё
+  let editId = $state<string | null>(null);
+  let eDate = $state(''); let eType = $state<ContentType>('reel'); let eTitle = $state('');
+  function startEdit(e: CalendarEntry) {
+    editId = e.id; eDate = e.date; eType = e.type; eTitle = e.title; fErr = '';
+  }
+  function saveEdit() {
+    if (!eTitle.trim() || !eDate) return;
+    store.updateCalendarEntry(editId!, { date: eDate, type: eType, title: eTitle.trim() });
+    editId = null;
+  }
+
   function toggleTheme() { store.setTheme(scheme === 'dark' ? 'light' : 'dark'); }
   function addEntry() {
     if (!fTitle.trim()) { fErr = 'Напишите, что публикуем.'; return; }
@@ -71,12 +83,39 @@
     </div>
   {:else}
     {#each entries as e (e.id)}
-      <div class="row">
-        <span class="ic" title={typeName[e.type]}>{icon[e.type]}</span>
-        <div class="mid"><div class="ti">{e.title}</div><div class="dt">{formatDay(e.date)}</div></div>
-        <button class="st {e.status}" onclick={() => cycle(e)} aria-label="Статус: {label[e.status]}. Нажмите, чтобы изменить">{label[e.status]}</button>
-        <button class="x" onclick={() => del(e)} aria-label="Удалить «{e.title}»">×</button>
-      </div>
+      {#if editId === e.id}
+        <div class="card">
+          <div class="row2">
+            <div class="col">
+              <label class="lb" for="edit-date">Дата</label>
+              <input id="edit-date" class="f" type="date" bind:value={eDate} />
+            </div>
+            <div class="col">
+              <label class="lb" for="edit-type">Формат</label>
+              <select id="edit-type" class="f" bind:value={eType}>
+                {#each Object.keys(typeName) as t}
+                  <option value={t}>{icon[t as ContentType]} {typeName[t as ContentType]}</option>
+                {/each}
+              </select>
+            </div>
+          </div>
+          <label class="lb" for="edit-title">Название</label>
+          <input id="edit-title" class="f" bind:value={eTitle} />
+          <div class="erow">
+            <button class="btn out" onclick={() => (editId = null)}>Отмена</button>
+            <button class="btn" onclick={saveEdit}>Сохранить</button>
+          </div>
+        </div>
+      {:else}
+        <div class="row">
+          <span class="ic" title={typeName[e.type]}>{icon[e.type]}</span>
+          <button class="mid" onclick={() => startEdit(e)} aria-label="Изменить «{e.title}»">
+            <div class="ti">{e.title}</div><div class="dt">{formatDay(e.date)} · нажмите, чтобы изменить</div>
+          </button>
+          <button class="st {e.status}" onclick={() => cycle(e)} aria-label="Статус: {label[e.status]}. Нажмите, чтобы изменить">{label[e.status]}</button>
+          <button class="x" onclick={() => del(e)} aria-label="Удалить «{e.title}»">×</button>
+        </div>
+      {/if}
     {/each}
   {/if}
 </main>
@@ -96,7 +135,12 @@
   .empty{padding:28px 14px;text-align:center;color:var(--muted);font-size:13px;display:flex;flex-direction:column;gap:12px;align-items:center}
   .empty .btn{min-width:200px}
   .row{display:flex;align-items:center;gap:9px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:9px 11px}
-  .ic{font-size:18px;flex-shrink:0}.mid{flex:1;min-width:0}.ti{font-size:14px;font-weight:700;overflow-wrap:anywhere}.dt{font-size:11px;color:var(--muted);margin-top:2px}
+  .ic{font-size:18px;flex-shrink:0}
+  .mid{flex:1;min-width:0;background:none;border:none;padding:0;text-align:left;cursor:pointer;font-family:inherit;color:inherit}
+  .ti{font-size:14px;font-weight:700;overflow-wrap:anywhere}.dt{font-size:11px;color:var(--muted);margin-top:2px}
+  .erow{display:flex;gap:8px}
+  .erow .btn{flex:1}
+  .btn.out{background:transparent;border:2px solid var(--line);color:var(--ink)}
   .st{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;padding:9px 10px;border-radius:20px;background:var(--red-soft);color:var(--body);flex-shrink:0;border:none;cursor:pointer;min-height:36px}
   .st.ready{background:rgba(209,35,41,.18);color:var(--ink)}
   .st.published{background:var(--red);color:#fff}
