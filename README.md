@@ -25,7 +25,7 @@ npm run build      # сборка в dist/
 
 ## Деплой как Telegram Mini App (чек-лист)
 
-1. Первая публикация: двойной клик по `publish-github.bat` (вход в GitHub → репозиторий → GitHub Pages через Actions). Обновления потом: `git add -A && git commit && git push` — Actions пересоберёт сам (`.github/workflows/deploy.yml`, сборка идёт с `--base=/<repo>/`).
+1. Приложение живёт в репозитории `dimitriskazarnovskis/12week-tracker`, адрес: `https://dimitriskazarnovskis.github.io/12week-tracker/`. Обновления: `git add -A && git commit && git push` — GitHub Actions пересоберёт сам (`.github/workflows/deploy.yml`, сборка идёт с `--base=/<repo>/`). Если доступ слетел — двойной клик по `publish-github.bat`.
 2. В @BotFather: создать бота → `/newapp` (или `/setmenubutton`) → указать URL GitHub Pages.
 3. Проверить на iPhone и Android: мастер настройки, отметки задач, «Итог недели», копирование резервной копии и итогов.
 
