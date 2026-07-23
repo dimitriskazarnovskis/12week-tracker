@@ -3,7 +3,9 @@
   import { onMount } from 'svelte';
   import { createStore } from './data/store.svelte';
   import { localAdapter, cloudAdapter } from './data/storage';
-  import { tg } from './lib/telegram';
+  import { parseImportFile } from './data/exportImport';
+  import { tg, dialogs } from './lib/telegram';
+  import { parseIncomingParam, fetchPlanText, wasApplied, markApplied } from './lib/planLink';
   import { resolveTheme, applyTheme } from './theme/theme.svelte';
   import BottomNav from './components/BottomNav.svelte';
   import WeekScreen from './screens/WeekScreen.svelte';
@@ -30,6 +32,35 @@
     void store.data.settings.theme;
     syncTheme();
   });
+  // Персональная ссылка от консультанта: план/обновление подтягивается сам, клиент только подтверждает.
+  let linkHandled = false;
+  $effect(() => {
+    if (store.status !== 'ready' || linkHandled) return;
+    linkHandled = true;
+    handleIncomingPlan();
+  });
+  async function handleIncomingPlan() {
+    const p = parseIncomingParam();
+    if (!p || wasApplied(p.id)) return;
+    try {
+      const text = await fetchPlanText(p.id, p.key, import.meta.env.BASE_URL);
+      const parsed = parseImportFile(text);
+      if (parsed.kind === 'update') {
+        if (!(await dialogs.confirm('Пришло обновление от консультанта (цифры месяца / контент-план). Применить? Ваши отметки сохранятся.'))) return;
+        await store.applyUpdate(parsed.update);
+      } else {
+        const q = store.data.plan
+          ? 'Загрузить новый план от консультанта? Текущие данные будут ЗАМЕНЕНЫ.'
+          : 'Загрузить ваш персональный план от консультанта?';
+        if (!(await dialogs.confirm(q))) return;
+        await store.importData(parsed.data);
+      }
+      markApplied(p.id);
+    } catch (e) {
+      await dialogs.alert(String((e as Error).message));
+    }
+  }
+
   // The webview can be dismissed at any moment: push pending cloud writes out immediately.
   $effect(() => {
     const flush = () => { store.flushNow(); };
