@@ -37,14 +37,14 @@ describe('store', () => {
     await s.saveKpi(2, 'g1', 7);
     expect(s.data.progress.kpis['2:g1']).toBe(7);
   });
-  it('cloud load failure with local data present → ready on local copy, cloudOk=false', async () => {
+  it('cloud load failure with local data present → ready on local copy, баннер не пугает сразу', async () => {
     const seed = migrate(null); seed.settings.theme = 'dark';
     await new LocalStorageAdapter().save(seed);
     const s = createStore(new LocalStorageAdapter(), failingCloud());
     await s.load();
     expect(s.status).toBe('ready');
     expect(s.data.settings.theme).toBe('dark');
-    expect(s.cloudOk).toBe(false);
+    expect(s.cloudOk).toBe(true); // одиночный сбой чтения — работаем дальше, автоповтор запланирован
   });
   it('cloud load failure with NO local data → error screen, never the setup wizard', async () => {
     const s = createStore(new LocalStorageAdapter(), failingCloud());
@@ -133,13 +133,20 @@ describe('store', () => {
     expect(await s.restoreBackup()).toBe(true); // и после сброса можно передумать
     expect(s.data.plan!.planId).toBe('p_client');
   });
-  it('cloud save failure flips cloudOk to false', async () => {
-    const cloud: StorageAdapter = { load: async () => null, save: async () => { throw new Error('x'); } };
+  it('одиночный сбой облака НЕ показывает баннер; второй подряд — показывает; успех сбрасывает', async () => {
+    let fail = true;
+    const cloud: StorageAdapter = { load: async () => null, save: async () => { if (fail) throw new Error('x'); } };
     const s = createStore(new LocalStorageAdapter(), cloud);
     await s.load();
-    expect(s.cloudOk).toBe(true);
     await s.saveKpi(1, 'g1', 1);
     await s.flushNow();
-    expect(s.cloudOk).toBe(false);
+    expect(s.cloudOk).toBe(true); // первый сбой — молчим, повторим сами
+    await s.saveKpi(1, 'g1', 2);
+    await s.flushNow();
+    expect(s.cloudOk).toBe(false); // второй подряд — честный баннер
+    fail = false;
+    await s.saveKpi(1, 'g1', 3);
+    await s.flushNow();
+    expect(s.cloudOk).toBe(true); // связь вернулась — баннер ушёл
   });
 });

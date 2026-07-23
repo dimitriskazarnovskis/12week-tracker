@@ -2,7 +2,8 @@
   import type { Store } from '../data/store.svelte';
   import type { CalendarEntry, ContentType, EntryStatus } from '../data/types';
   import { dialogs } from '../lib/telegram';
-  import { formatDay } from '../data/selectors';
+  import { formatDay, weekOfDate, weekRange } from '../data/selectors';
+  import { WEEKS } from '../data/types';
   import { resolveTheme, sys } from '../theme/theme.svelte';
   import AppHeader from '../components/AppHeader.svelte';
 
@@ -14,6 +15,23 @@
   const label: Record<EntryStatus, string> = { planned: 'Запланировано', ready: 'Готово', published: 'Опубликовано' };
   const nextStatus: Record<EntryStatus, EntryStatus> = { planned: 'ready', ready: 'published', published: 'planned' };
   const entries = $derived([...(d.plan?.calendar ?? [])].sort((a, b) => a.date.localeCompare(b.date)));
+  // Группировка по неделям программы: «Неделя N · даты», до старта и после 12 недель — отдельно.
+  function groupLabel(date: string): string {
+    const start = d.plan!.startDate;
+    const w = weekOfDate(start, date);
+    if (w < 1) return 'До старта программы';
+    if (w > WEEKS) return 'После 12 недель';
+    return `Неделя ${w} · ${weekRange(start, w)}`;
+  }
+  const groups = $derived.by(() => {
+    const out: { label: string; items: CalendarEntry[] }[] = [];
+    for (const e of entries) {
+      const label = groupLabel(e.date);
+      if (out.length === 0 || out[out.length - 1].label !== label) out.push({ label, items: [] });
+      out[out.length - 1].items.push(e);
+    }
+    return out;
+  });
 
   function toLocalISO(dt: Date) { const c = new Date(dt); c.setMinutes(c.getMinutes() - c.getTimezoneOffset()); return c.toISOString().slice(0, 10); }
   let adding = $state(false);
@@ -82,7 +100,9 @@
       <button class="btn" onclick={() => (adding = true)}>Добавить первую</button>
     </div>
   {:else}
-    {#each entries as e (e.id)}
+    {#each groups as g (g.label)}
+      <div class="wkhead">{g.label}</div>
+    {#each g.items as e (e.id)}
       {#if editId === e.id}
         <div class="card">
           <div class="row2">
@@ -117,10 +137,12 @@
         </div>
       {/if}
     {/each}
+    {/each}
   {/if}
 </main>
 <style>
   .bd{padding:3px 16px 24px;display:flex;flex-direction:column;gap:10px}
+  .wkhead{font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-top:8px}
   .head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:2px}
   .h{font-size:24px;font-weight:800;letter-spacing:-.5px}
   .add{border:none;background:none;color:var(--red);font:800 13px Montserrat,sans-serif;cursor:pointer;padding:10px 0 10px 10px;flex-shrink:0}

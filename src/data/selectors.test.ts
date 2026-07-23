@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { weekScore, currentWeek, kpiProgress, overallStats, programState, weekRange, formatDay, lastKpi, programEndISO, reportMonths, monthLabel, growthHealth } from './selectors';
+import { weekScore, currentWeek, kpiProgress, overallStats, programState, weekRange, formatDay, lastKpi, programEndISO, reportMonths, monthLabel, growthHealth, weekOfDate } from './selectors';
 import type { AppData } from './types';
 import { emptyProgress } from './types';
 
@@ -76,6 +76,13 @@ describe('selectors', () => {
       { followers: 8362 }
     );
     expect(healthy).toBeGreaterThanOrEqual(70);
+  });
+  it('weekOfDate: номер недели программы без клампа (для группировки календаря)', () => {
+    expect(weekOfDate('2026-07-27', '2026-07-27')).toBe(1);
+    expect(weekOfDate('2026-07-27', '2026-08-02')).toBe(1);
+    expect(weekOfDate('2026-07-27', '2026-08-03')).toBe(2);
+    expect(weekOfDate('2026-07-27', '2026-07-20')).toBe(0);   // до старта
+    expect(weekOfDate('2026-07-27', '2026-10-19')).toBe(13);  // после 12 недель
   });
   it('overallStats computes averages over weeks with activity', () => {
     const d = structuredClone(base);

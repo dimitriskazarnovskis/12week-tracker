@@ -84,7 +84,7 @@
   {#if store.saveError}
     <div class="warn bad">Не удаётся сохранить данные на устройстве. Освободите место или проверьте настройки браузера.</div>
   {:else if inTelegram && !store.cloudOk}
-    <div class="warn">Облачная копия Telegram сейчас недоступна — данные сохраняются только на этом устройстве.</div>
+    <div class="warn">Облачная копия обновится автоматически, как только появится связь. Все данные надёжно сохранены на этом устройстве — ничего не потеряно.</div>
   {/if}
 
   <div class="card">
@@ -145,7 +145,7 @@
       <div class="cl">Дата старта</div>
       <input class="f" type="date" value={d.plan.startDate}
         onchange={(e) => store.updateStartDate((e.target as HTMLInputElement).value)} aria-label="Дата старта программы" />
-      <div class="msg">Сейчас: {formatDay(d.plan.startDate)}. Сдвиг даты пересчитает недели — менять лучше до начала программы.</div>
+      <div class="msg">Дата старта программы: {formatDay(d.plan.startDate)}. Сдвиг пересчитает недели — менять лучше до начала.</div>
     </div>
   {/if}
 

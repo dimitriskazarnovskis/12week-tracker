@@ -27,6 +27,14 @@ export function programState(startDate: string, now: Date): ProgramState {
   if (d < 0) return 'before';
   return d >= WEEKS * 7 ? 'done' : 'active';
 }
+// Сегодняшняя дата в локальном ISO (для «Сегодня 23 июля» и т.п.)
+export function todayISO(now: Date = new Date()): string {
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+}
+// Номер недели программы для произвольной даты; БЕЗ клампа (может быть <1 и >12) — для группировки календаря.
+export function weekOfDate(startDate: string, iso: string): number {
+  return Math.floor(daysSince(startDate, new Date(iso + 'T00:00:00')) / 7) + 1;
+}
 const RU_MONTHS = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
 const RU_DAYS = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
 export function formatDay(iso: string, withWeekday = true): string {

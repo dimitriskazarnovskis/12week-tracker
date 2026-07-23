@@ -25,14 +25,27 @@ export function createStore(local: StorageAdapter, cloud: StorageAdapter | null)
     if (cloudTimer) clearTimeout(cloudTimer);
     cloudTimer = setTimeout(() => { flushCloud(); }, 500);
   }
+  // Сетевая заминка ≠ тревога: повторяем сами с растущими паузами; баннер клиенту —
+  // только после ДВУХ подряд неудач (одиночные сбои на мобильной сети — норма).
+  let cloudFails = 0;
+  let retryTimer: ReturnType<typeof setTimeout> | null = null;
+  function scheduleCloudRetry() {
+    if (retryTimer || !cloud) return;
+    const delay = Math.min(120_000, 15_000 * Math.pow(2, Math.min(cloudFails - 1, 3)));
+    retryTimer = setTimeout(() => {
+      retryTimer = null;
+      if (!pendingSnap) pendingSnap = $state.snapshot(data) as AppData;
+      flushCloud();
+    }, delay);
+  }
   function flushCloud(): Promise<void> {
     if (cloudTimer) { clearTimeout(cloudTimer); cloudTimer = null; }
     if (cloud && pendingSnap) {
       const snap = pendingSnap; pendingSnap = null;
       cloudChain = cloudChain
         .then(() => cloud.save(snap))
-        .then(() => { cloudOk = true; })
-        .catch(() => { cloudOk = false; });
+        .then(() => { cloudFails = 0; cloudOk = true; })
+        .catch(() => { cloudFails += 1; cloudOk = cloudFails < 2; scheduleCloudRetry(); });
     }
     return cloudChain;
   }
@@ -79,7 +92,6 @@ export function createStore(local: StorageAdapter, cloud: StorageAdapter | null)
             if (!localRaw || cv > lv) raw = cloudRaw; // newest wins (ISO timestamps compare lexically)
           }
         } catch {
-          cloudOk = false;
           if (!raw) {
             // Cloud unreachable AND nothing local: a flaky network must not look like a new
             // account — showing the setup wizard here would let the client overwrite live data.
@@ -87,6 +99,10 @@ export function createStore(local: StorageAdapter, cloud: StorageAdapter | null)
             status = 'error';
             return;
           }
+          // Есть локальная копия — работаем с неё; облако догоним автоповтором (stale-guard
+          // в хранилище не даст затереть более новые данные, если они там появились).
+          cloudFails = 1;
+          scheduleCloudRetry();
         }
       }
       try {
