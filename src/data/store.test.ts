@@ -80,6 +80,22 @@ describe('store', () => {
     const reloaded: any = await new LocalStorageAdapter().load();
     expect(reloaded.plan.goals[0].name).toBe('Новое имя');
   });
+  it('addGoal ограничен тремя; removeGoal убирает цель, её задачи, отметки и показатели', async () => {
+    const s = createStore(new LocalStorageAdapter(), null); await s.load();
+    s.setPlan({ planId: 'p', planVersion: 1, clientId: '', startDate: '2026-07-27',
+      goals: [{ id: 'g1', name: 'Первая', emoji: '🎯', color: 'red', metricName: 'ER', metricTarget: 5 }],
+      tactics: [{ id: 't1', goalId: 'g1', text: 'A' }], calendar: [] });
+    const g2 = await s.addGoal(); const g3 = await s.addGoal();
+    expect(g2 && g3).toBeTruthy();
+    expect(await s.addGoal()).toBeNull(); // четвёртую нельзя
+    await s.toggleTask(2, 't1');
+    await s.saveKpi(2, 'g1', 4);
+    await s.removeGoal('g1');
+    expect(s.data.plan!.goals.map(g => g.id)).toEqual([g2, g3]);
+    expect(s.data.plan!.tactics).toHaveLength(0);
+    expect(s.data.progress.checks['2:t1']).toBeUndefined();
+    expect(s.data.progress.kpis['2:g1']).toBeUndefined();
+  });
   it('calendar entries: add / update / remove persist', async () => {
     const s = createStore(new LocalStorageAdapter(), null); await s.load();
     s.setPlan({ planId: 'p', planVersion: 1, clientId: '', startDate: '2026-06-01', goals: [], tactics: [], calendar: [] });

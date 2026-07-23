@@ -155,6 +155,26 @@ export function createStore(local: StorageAdapter, cloud: StorageAdapter | null)
     },
 
     // --- plan editing (goals & tactics stay editable after setup) ---
+    async addGoal(): Promise<string | null> {
+      if (!data.plan || data.plan.goals.length >= 3) return null; // метод: не больше трёх целей
+      const palette: Goal['color'][] = ['red', 'blue', 'green', 'purple', 'amber', 'ink'];
+      const g: Goal = { id: genId('g'), name: 'Новая цель', emoji: '🎯',
+        color: palette[data.plan.goals.length % palette.length], metricName: '', metricTarget: 0 };
+      data.plan.goals.push(g);
+      await persist();
+      return g.id;
+    },
+    async removeGoal(id: string) {
+      if (!data.plan) return;
+      const tacticIds = data.plan.tactics.filter(t => t.goalId === id).map(t => t.id);
+      data.plan.goals = data.plan.goals.filter(g => g.id !== id);
+      data.plan.tactics = data.plan.tactics.filter(t => t.goalId !== id);
+      for (let w = 1; w <= WEEKS; w++) {
+        for (const tid of tacticIds) delete data.progress.checks[checkKey(w, tid)];
+        delete data.progress.kpis[kpiKey(w, id)];
+      }
+      await persist();
+    },
     async updateGoal(id: string, patch: Partial<Pick<Goal, 'name' | 'metricName' | 'metricTarget' | 'emoji' | 'color'>>) {
       const g = data.plan?.goals.find(g => g.id === id); if (!g) return;
       Object.assign(g, patch);

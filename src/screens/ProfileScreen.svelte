@@ -76,6 +76,15 @@
   async function delTactic(id: string, text: string) {
     if (await dialogs.confirm(`Удалить задачу «${text || 'без названия'}» и все её отметки?`)) store.removeTactic(id);
   }
+  async function addNewGoal() {
+    const id = await store.addGoal();
+    if (id) editingId = id; // сразу открываем редактор новой цели
+  }
+  async function delGoal(id: string, name: string) {
+    if (!(await dialogs.confirm(`Удалить цель «${name || 'без названия'}»? Вместе с ней удалятся её задачи недели и введённые показатели.`))) return;
+    editingId = null;
+    await store.removeGoal(id);
+  }
 </script>
 <AppHeader {scheme} onToggle={toggleTheme} />
 <main class="bd">
@@ -130,6 +139,7 @@
           {/each}
           <button class="addt" onclick={() => store.addTacticTo(g.id, '')}>+ Задача</button>
           <button class="btn out" onclick={() => (editingId = null)}>Готово</button>
+          <button class="btn danger" onclick={() => delGoal(g.id, g.name)}>Удалить эту цель</button>
         </div>
       {:else}
         <div class="goal">
@@ -138,6 +148,11 @@
         </div>
       {/if}
     {/each}
+    {#if d.plan && d.plan.goals.length < 3}
+      <button class="addt" onclick={addNewGoal}>+ Добавить цель</button>
+    {:else if d.plan}
+      <div class="msg">Максимум 3 цели — так фокус не размывается.</div>
+    {/if}
   </div>
 
   {#if d.plan}
