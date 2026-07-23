@@ -32,5 +32,7 @@ export function isAppData(v: unknown): v is AppData {
   if (d.progress.monthly != null && typeof d.progress.monthly !== 'object') return false;
   if (!d.settings || typeof d.settings.theme !== 'string') return false;
   if (d.plan !== null && !isPlan(d.plan)) return false;
+  if (d.archive != null && !(Array.isArray(d.archive)
+    && d.archive.every((c: any) => c && isPlan(c.plan) && c.progress && typeof c.progress === 'object'))) return false;
   return true;
 }

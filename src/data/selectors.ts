@@ -27,6 +27,13 @@ export function programState(startDate: string, now: Date): ProgramState {
   if (d < 0) return 'before';
   return d >= WEEKS * 7 ? 'done' : 'active';
 }
+// Ближайший понедельник (сегодня, если понедельник) — дата старта по умолчанию.
+export function nextMondayISO(now: Date = new Date()): string {
+  const d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const add = d.getDay() === 1 ? 0 : ((8 - d.getDay()) % 7 || 7);
+  d.setDate(d.getDate() + add);
+  return todayISO(d);
+}
 // Сегодняшняя дата в локальном ISO (для «Сегодня 23 июля» и т.п.)
 export function todayISO(now: Date = new Date()): string {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;

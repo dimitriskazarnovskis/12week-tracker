@@ -1,7 +1,7 @@
 import type { StorageAdapter } from './storage/adapter';
 import type { AppData, CalendarEntry, Goal, MonthlyReport, Plan, ThemePref } from './types';
 import type { ConsultantUpdate } from './exportImport';
-import { checkKey, kpiKey, WEEKS } from './types';
+import { checkKey, emptyProgress, kpiKey, WEEKS } from './types';
 import { migrate, CURRENT_VERSION } from './migrations';
 import { genId, now } from '../lib/ids';
 
@@ -138,6 +138,24 @@ export function createStore(local: StorageAdapter, cloud: StorageAdapter | null)
     async setTheme(theme: ThemePref) { data.settings.theme = theme; await persist(); },
     async importData(d2: AppData) { stashBackup(); data = d2; await persist(); },
     async reset() { stashBackup(); data = migrate(null); await persist(); },
+
+    // Завершение 12 недель → прошлый цикл в архив (виден в Профиле, синхронизируется
+    // в облако и в резервные файлы), новый счёт недель с чистого листа.
+    async startNewCycle(startDate: string, keepGoals: boolean) {
+      if (!data.plan || !startDate) return;
+      stashBackup();
+      const snap = $state.snapshot(data) as AppData;
+      if (!data.archive) data.archive = [];
+      data.archive.push({ plan: snap.plan!, progress: snap.progress, archivedAt: now() });
+      data.plan = {
+        planId: genId('p'), planVersion: 1, clientId: snap.plan!.clientId, startDate,
+        goals: keepGoals ? snap.plan!.goals : [],
+        tactics: keepGoals ? snap.plan!.tactics : [],
+        calendar: [],
+      };
+      data.progress = emptyProgress();
+      await persist();
+    },
 
     get backupAt() { return backupAt; },
     // Обмен местами: текущее состояние становится новой страховкой — «отмену» можно отменить.

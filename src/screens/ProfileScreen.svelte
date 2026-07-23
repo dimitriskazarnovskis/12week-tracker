@@ -3,7 +3,8 @@
   import type { AppData, ThemePref } from '../data/types';
   import { APP_VERSION, EMOJIS } from '../data/types';
   import { toExport, parseImportFile } from '../data/exportImport';
-  import { tacticsForGoal, formatDay } from '../data/selectors';
+  import { tacticsForGoal, formatDay, overallStats, lastKpi, kpiProgress, programEndISO } from '../data/selectors';
+  import type { ArchivedCycle } from '../data/types';
   import { tg, dialogs } from '../lib/telegram';
   import { resolveTheme, sys } from '../theme/theme.svelte';
   import AppHeader from '../components/AppHeader.svelte';
@@ -76,6 +77,22 @@
   async function delTactic(id: string, text: string) {
     if (await dialogs.confirm(`Удалить задачу «${text || 'без названия'}» и все её отметки?`)) store.removeTactic(id);
   }
+  // Итоги архивного цикла: те же селекторы поверх сохранённого снимка.
+  function cycleSummary(c: ArchivedCycle): string {
+    const fake = { meta: d.meta, plan: c.plan, progress: c.progress, settings: d.settings } as AppData;
+    const st = overallStats(fake);
+    const goals = c.plan.goals.map(g => {
+      const v = lastKpi(fake, g.id);
+      return `${g.emoji} ${g.name} — ${g.metricName}: ${v} из ${g.metricTarget} (${kpiProgress(v, g.metricTarget)}%)`;
+    }).join('\n');
+    const period = `${formatDay(c.plan.startDate, false)} – ${formatDay(programEndISO(c.plan.startDate), false)}`;
+    return `🏁 Итоги цикла (${period})\nСредний балл ${st.avgScore}% · отличных недель ${st.excellentWeeks} из 12\n\n${goals}\n\n— Dr. Kazarnovskis & Partners`;
+  }
+  async function copyCycle(c: ArchivedCycle) {
+    try { await navigator.clipboard.writeText(cycleSummary(c)); dataMsg = 'Итоги цикла скопированы ✓'; dataMsgBad = false; }
+    catch { dataMsg = 'Не удалось скопировать.'; dataMsgBad = true; }
+  }
+
   async function addNewGoal() {
     const id = await store.addGoal();
     if (id) editingId = id; // сразу открываем редактор новой цели
@@ -161,6 +178,20 @@
       <input class="f" type="date" value={d.plan.startDate}
         onchange={(e) => store.updateStartDate((e.target as HTMLInputElement).value)} aria-label="Дата старта программы" />
       <div class="msg">Дата старта программы: {formatDay(d.plan.startDate)}. Сдвиг пересчитает недели — менять лучше до начала.</div>
+    </div>
+  {/if}
+
+  {#if d.archive?.length}
+    <div class="card">
+      <div class="cl">Архив циклов</div>
+      {#each d.archive as c, i (c.archivedAt)}
+        <div class="goal">
+          <span>🏁</span>
+          <b>Цикл {i + 1} · {formatDay(c.plan.startDate, false)} – {formatDay(programEndISO(c.plan.startDate), false)}</b>
+          <button class="edit" onclick={() => copyCycle(c)}>Итоги</button>
+        </div>
+      {/each}
+      <div class="msg">Полная история циклов хранится в приложении и попадает в резервную копию.</div>
     </div>
   {/if}
 

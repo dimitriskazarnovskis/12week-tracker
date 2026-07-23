@@ -121,6 +121,26 @@ describe('TelegramCloudAdapter', () => {
       await assertion;
     } finally { vi.useRealTimers(); }
   });
+  it('архив циклов: нарезается кусками ≤4096 и склеивается обратно', async () => {
+    const c = mockCloud(); (globalThis as any).Telegram = { WebApp: { CloudStorage: c.api } };
+    const a = new TelegramCloudAdapter();
+    const d = migrate(null);
+    d.archive = [{
+      archivedAt: '2026-10-19T00:00:00.000Z',
+      plan: { planId: 'p_old', planVersion: 1, clientId: '', startDate: '2026-07-27',
+        goals: [{ id: 'g1', name: 'Ц'.repeat(400), emoji: '🎯', color: 'red', metricName: 'ER', metricTarget: 5 }],
+        tactics: Array.from({ length: 12 }, (_, i) => ({ id: 't' + i, goalId: 'g1', text: 'Задача №' + i + ' — ' + 'х'.repeat(300) })),
+        calendar: [] },
+      progress: { checks: { '1:t1': true }, kpis: { '1:g1': 3 }, reflections: { '1': 'итог' } },
+    }];
+    await a.save(d);
+    for (const v of Object.values(c.mem)) expect(v.length).toBeLessThanOrEqual(4096);
+    expect(Object.keys(c.mem).filter(k => k.startsWith('kd_arch_')).length).toBeGreaterThan(1); // реально порезался
+    const back: any = await a.load();
+    expect(back.archive).toHaveLength(1);
+    expect(back.archive[0].plan.planId).toBe('p_old');
+    expect(back.archive[0].progress.checks['1:t1']).toBe(true);
+  });
   it('load skips a corrupt shard instead of throwing', async () => {
     const c = mockCloud(); (globalThis as any).Telegram = { WebApp: { CloudStorage: c.api } };
     const a = new TelegramCloudAdapter();

@@ -96,6 +96,27 @@ describe('store', () => {
     expect(s.data.progress.checks['2:t1']).toBeUndefined();
     expect(s.data.progress.kpis['2:g1']).toBeUndefined();
   });
+  it('startNewCycle: прошлый цикл в архив, недели с нуля, цели по желанию переносятся', async () => {
+    const s = createStore(new LocalStorageAdapter(), null); await s.load();
+    s.setPlan({ planId: 'p_old', planVersion: 1, clientId: 'leyla', startDate: '2026-07-27',
+      goals: [{ id: 'g1', name: 'Цель', emoji: '🎯', color: 'red', metricName: 'ER', metricTarget: 5 }],
+      tactics: [{ id: 't1', goalId: 'g1', text: 'A' }],
+      calendar: [{ id: 'c1', date: '2026-07-27', type: 'reel', title: 'X', status: 'published' }] });
+    await s.toggleTask(3, 't1');
+    await s.saveKpi(3, 'g1', 4);
+    await s.startNewCycle('2026-10-19', true);
+    expect(s.data.archive).toHaveLength(1);
+    expect(s.data.archive![0].plan.planId).toBe('p_old');
+    expect(s.data.archive![0].progress.checks['3:t1']).toBe(true);
+    expect(s.data.plan!.planId).not.toBe('p_old');
+    expect(s.data.plan!.startDate).toBe('2026-10-19');
+    expect(s.data.plan!.goals).toHaveLength(1);      // цели перенесены
+    expect(s.data.plan!.calendar).toHaveLength(0);   // контент-план нового цикла — новый
+    expect(s.data.progress.checks).toEqual({});      // отметки с нуля
+    await s.startNewCycle('2027-01-18', false);
+    expect(s.data.archive).toHaveLength(2);
+    expect(s.data.plan!.goals).toHaveLength(0);      // без переноса
+  });
   it('calendar entries: add / update / remove persist', async () => {
     const s = createStore(new LocalStorageAdapter(), null); await s.load();
     s.setPlan({ planId: 'p', planVersion: 1, clientId: '', startDate: '2026-06-01', goals: [], tactics: [], calendar: [] });

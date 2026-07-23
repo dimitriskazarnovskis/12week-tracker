@@ -5,7 +5,7 @@ export type EntryStatus = 'planned' | 'ready' | 'published';
 export type ThemePref = 'auto' | 'light' | 'dark';
 
 export const WEEKS = 12;
-export const APP_VERSION = '1.4.6';
+export const APP_VERSION = '1.5.0';
 export const GOAL_COLORS: Record<GoalColorId, { hex: string; on: string }> = {
   red:    { hex: '#D12329', on: '#FCEAEC' },
   ink:    { hex: '#231F20', on: '#F0EFEE' },
@@ -40,7 +40,9 @@ export interface Progress {
 }
 export interface Settings { theme: ThemePref; lang: 'ru'; }
 export interface Meta { schemaVersion: number; createdAt: string; updatedAt: string; }
-export interface AppData { meta: Meta; plan: Plan | null; progress: Progress; settings: Settings; }
+// Завершённый 12-недельный цикл целиком (план + весь прогресс) — «Начать новый цикл» складывает сюда.
+export interface ArchivedCycle { plan: Plan; progress: Progress; archivedAt: string; }
+export interface AppData { meta: Meta; plan: Plan | null; progress: Progress; settings: Settings; archive?: ArchivedCycle[]; }
 
 export function emptyProgress(): Progress { return { checks: {}, kpis: {}, reflections: {}, monthly: {} }; }
 export const checkKey = (week: number, taskId: ID) => `${week}:${taskId}`;

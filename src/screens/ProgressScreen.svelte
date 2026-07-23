@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { Store } from '../data/store.svelte';
-  import { overallStats, currentWeek, weekScore, programState, lastKpi, kpiProgress, programEndISO, formatDay } from '../data/selectors';
+  import { overallStats, currentWeek, weekScore, programState, lastKpi, kpiProgress, programEndISO, formatDay, nextMondayISO } from '../data/selectors';
+  import { dialogs } from '../lib/telegram';
   import { WEEKS } from '../data/types';
   import { resolveTheme, sys } from '../theme/theme.svelte';
   import AppHeader from '../components/AppHeader.svelte';
@@ -27,6 +28,16 @@
     try { await navigator.clipboard.writeText(summaryText()); copied = 'Скопировано ✓ Вставьте сообщением в чат с вашим консультантом.'; }
     catch { copied = 'Не удалось скопировать — выделите текст вручную.'; }
   }
+
+  // Новый цикл: прошлый уходит в архив (Профиль), недели начинаются заново.
+  let cycleFormOpen = $state(false);
+  let cycleDate = $state(nextMondayISO());
+  let cycleKeepGoals = $state(true);
+  async function startCycle() {
+    if (!cycleDate) return;
+    if (!(await dialogs.confirm('Начать новый цикл 12 недель? Текущий цикл со всей историей уйдёт в архив (Профиль → «Архив циклов»).'))) return;
+    await store.startNewCycle(cycleDate, cycleKeepGoals);
+  }
 </script>
 <AppHeader {scheme} onToggle={toggleTheme} />
 <main class="bd">
@@ -41,6 +52,20 @@
       {/each}
       <button class="btn" onclick={copySummary}>Скопировать итоги</button>
       {#if copied}<div class="msg" role="status">{copied}</div>{/if}
+
+      {#if !cycleFormOpen}
+        <button class="btn out" onclick={() => (cycleFormOpen = true)}>Начать новый цикл 12 недель</button>
+      {:else}
+        <div class="cycleform">
+          <label class="lb" for="cycle-date">Дата старта нового цикла</label>
+          <input id="cycle-date" class="f" type="date" bind:value={cycleDate} />
+          <label class="chk"><input type="checkbox" bind:checked={cycleKeepGoals} /> Перенести цели и задачи недели в новый цикл</label>
+          <div class="erow">
+            <button class="btn out" onclick={() => (cycleFormOpen = false)}>Отмена</button>
+            <button class="btn" onclick={startCycle}>Начать</button>
+          </div>
+        </div>
+      {/if}
     </div>
   {/if}
   <div class="stats">
@@ -74,5 +99,13 @@
   .finrow{font-size:13px;line-height:1.5;color:var(--body);overflow-wrap:anywhere}
   .finrow b{color:var(--ink)}
   .btn{margin-top:4px;padding:13px;border-radius:10px;border:none;background:var(--red);color:#fff;font:800 13px Montserrat,sans-serif;cursor:pointer;text-align:center}
+  .btn.out{background:transparent;border:2px solid var(--line);color:var(--ink)}
   .msg{font-size:13px;font-weight:600;color:var(--body);line-height:1.45}
+  .cycleform{display:flex;flex-direction:column;gap:8px;padding:11px;border:1px solid var(--line);border-radius:12px;background:var(--bg)}
+  .lb{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+  .f{width:100%;padding:12px;border:1px solid var(--line);background:var(--surface);border-radius:10px;font:600 16px Montserrat,sans-serif;color:var(--ink);outline:none}
+  .chk{display:flex;gap:8px;align-items:center;font-size:14px;color:var(--body);min-height:40px}
+  .chk input{width:20px;height:20px;accent-color:var(--red)}
+  .erow{display:flex;gap:8px}
+  .erow .btn{flex:1;margin-top:0}
 </style>

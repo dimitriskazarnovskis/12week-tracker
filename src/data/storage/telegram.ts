@@ -24,7 +24,7 @@ const del = (ks: string[]) => ks.length ? guarded<void>((res, rej) => cs().remov
 
 const monthOf = (iso: string) => iso.slice(0, 7);
 function safeParse<T>(raw: string, fallback: T): T { try { return raw ? (JSON.parse(raw) as T) : fallback; } catch { return fallback; } }
-const isDataShard = (k: string) => k === 'kd_plan' || k === 'kd_monthly' || k.startsWith('kd_cal_') || /^kd_prog_w\d+$/.test(k);
+const isDataShard = (k: string) => k === 'kd_plan' || k === 'kd_monthly' || k.startsWith('kd_cal_') || /^kd_prog_w\d+$/.test(k) || /^kd_arch_\d+_\d+$/.test(k);
 
 export class TelegramCloudAdapter implements StorageAdapter {
   async load(): Promise<unknown | null> {
@@ -49,7 +49,26 @@ export class TelegramCloudAdapter implements StorageAdapter {
       for (const [g, v] of Object.entries(wk.kpis ?? {})) progress.kpis[`${w}:${g}`] = v as number;
       if (wk.reflection) progress.reflections[`${w}`] = wk.reflection;
     }
-    return { meta, plan, progress, settings };
+    const result: any = { meta, plan, progress, settings };
+
+    const archKeys = allKeys.filter(k => /^kd_arch_\d+_\d+$/.test(k));
+    if (archKeys.length) {
+      const byCycle: Record<string, string[]> = {};
+      for (const k of archKeys.sort()) {
+        const i = k.match(/^kd_arch_(\d+)_/)![1];
+        (byCycle[i] ??= []).push(k);
+      }
+      const archive: any[] = [];
+      for (const i of Object.keys(byCycle).sort((a, b) => Number(a) - Number(b))) {
+        let joined = '';
+        for (const k of byCycle[i]) joined += await get(k);
+        const cycle = safeParse<any>(joined, null);
+        if (cycle) archive.push(cycle);
+      }
+      if (archive.length) result.archive = archive;
+    }
+
+    return result;
   }
 
   async save(data: AppData): Promise<void> {
@@ -86,6 +105,17 @@ export class TelegramCloudAdapter implements StorageAdapter {
     }
     if (data.progress.monthly && Object.keys(data.progress.monthly).length) {
       pairs.push(['kd_monthly', JSON.stringify(data.progress.monthly)]);
+    }
+
+    // Архив циклов: каждый цикл — своя строка JSON, нарезанная на куски ≤3800 знаков
+    // (kd_arch_<цикл>_<часть>, часть с ведущим нулём, чтобы сортировка склеивала верно).
+    if (data.archive?.length) {
+      data.archive.forEach((cycle, i) => {
+        const json = JSON.stringify(cycle);
+        for (let j = 0; j * 3800 < json.length; j++) {
+          pairs.push([`kd_arch_${i}_${String(j).padStart(2, '0')}`, json.slice(j * 3800, (j + 1) * 3800)]);
+        }
+      });
     }
 
     const oversized = pairs.find(([, v]) => v.length > MAX_VALUE);
