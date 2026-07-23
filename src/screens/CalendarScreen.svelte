@@ -164,7 +164,8 @@
   .erow .btn{flex:1}
   .btn.out{background:transparent;border:2px solid var(--line);color:var(--ink)}
   .st{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;padding:9px 10px;border-radius:20px;background:var(--red-soft);color:var(--body);flex-shrink:0;border:none;cursor:pointer;min-height:36px}
-  .st.ready{background:rgba(209,35,41,.18);color:var(--ink)}
-  .st.published{background:var(--red);color:#fff}
+  /* цветовая логика Ergebnis-Dashboard: серый = запланировано, жёлтый = в работе, зелёный = сделано */
+  .st.ready{background:rgba(200,134,11,.18);color:var(--ink)}
+  .st.published{background:#2E8B57;color:#fff}
   .x{border:none;background:none;color:var(--muted);font-size:20px;cursor:pointer;line-height:1;min-width:36px;min-height:36px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 </style>

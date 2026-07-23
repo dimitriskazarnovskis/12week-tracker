@@ -3,7 +3,7 @@
   type Tab = 'week' | 'calendar' | 'progress' | 'report' | 'profile';
   let { active, onNav }: { active: Tab; onNav: (t: Tab) => void } = $props();
   const tabs: { id: Tab; icon: IconName; label: string }[] = [
-    { id: 'week', icon: 'target', label: 'Неделя' }, { id: 'calendar', icon: 'calendar', label: 'Календарь' },
+    { id: 'week', icon: 'target', label: 'Неделя' }, { id: 'calendar', icon: 'calendar', label: 'Контент' },
     { id: 'progress', icon: 'chart', label: 'Прогресс' }, { id: 'report', icon: 'doc', label: 'Отчёт' },
     { id: 'profile', icon: 'gear', label: 'Профиль' },
   ];
