@@ -65,7 +65,13 @@
     finally { input.value = ''; }
   }
   async function reset() {
-    if (await dialogs.confirm('Сбросить все данные? Это удалит план и весь прогресс.')) store.reset();
+    if (await dialogs.confirm('Сбросить все данные? Это удалит план и весь прогресс. (Кнопка «Вернуть данные» позволит передумать.)')) store.reset();
+  }
+  async function restorePrev() {
+    if (!(await dialogs.confirm('Вернуть данные, какими они были до последней замены или сброса? Текущее состояние тоже сохранится — действие можно отменить повторным нажатием.'))) return;
+    const ok = await store.restoreBackup();
+    dataMsg = ok ? 'Данные восстановлены ✓' : 'Не удалось восстановить резервную копию.';
+    dataMsgBad = !ok;
   }
   async function delTactic(id: string, text: string) {
     if (await dialogs.confirm(`Удалить задачу «${text || 'без названия'}» и все её отметки?`)) store.removeTactic(id);
@@ -148,6 +154,9 @@
     <button class="btn" onclick={doExport}>{inTelegram ? 'Скопировать резервную копию' : 'Выгрузить в файл'}</button>
     <label class="btn out">Загрузить из файла<input type="file" accept="application/json" hidden onchange={doImport} /></label>
     {#if dataMsg}<div class="msg" class:bad={dataMsgBad} role="status">{dataMsg}</div>{/if}
+    {#if store.backupAt}
+      <button class="btn out" onclick={restorePrev}>↩ Вернуть данные до последней замены</button>
+    {/if}
     <button class="btn danger" onclick={reset}>Сбросить всё</button>
   </div>
 

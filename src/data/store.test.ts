@@ -106,6 +106,33 @@ describe('store', () => {
     expect(s.data.plan!.calendar).toHaveLength(1);
     expect(s.data.plan!.calendar[0].status).toBe('planned');
   });
+  it('importData/reset stash a backup; restoreBackup brings client data back (and is re-undoable)', async () => {
+    const s = createStore(new LocalStorageAdapter(), null); await s.load();
+    s.setPlan({ planId: 'p_client', planVersion: 1, clientId: '', startDate: '2026-07-27',
+      goals: [{ id: 'g1', name: 'Цель клиента', emoji: '🎯', color: 'red', metricName: 'ER', metricTarget: 5 }],
+      tactics: [{ id: 't1', goalId: 'g1', text: 'Её задача' }], calendar: [] });
+    await s.toggleTask(1, 't1');
+    expect(s.backupAt).toBeNull();
+
+    const consultantPlan = migrate(null);
+    consultantPlan.plan = { planId: 'p_new', planVersion: 1, clientId: '', startDate: '2026-08-03', goals: [], tactics: [], calendar: [] };
+    await s.importData(consultantPlan);
+    expect(s.data.plan!.planId).toBe('p_new');
+    expect(s.backupAt).not.toBeNull();
+
+    expect(await s.restoreBackup()).toBe(true);
+    expect(s.data.plan!.planId).toBe('p_client');
+    expect(s.data.progress.checks['1:t1']).toBe(true); // её отметки вернулись
+
+    expect(await s.restoreBackup()).toBe(true); // отмена отмены
+    expect(s.data.plan!.planId).toBe('p_new');
+
+    await s.restoreBackup(); // назад к клиентским
+    await s.reset();
+    expect(s.data.plan).toBeNull();
+    expect(await s.restoreBackup()).toBe(true); // и после сброса можно передумать
+    expect(s.data.plan!.planId).toBe('p_client');
+  });
   it('cloud save failure flips cloudOk to false', async () => {
     const cloud: StorageAdapter = { load: async () => null, save: async () => { throw new Error('x'); } };
     const s = createStore(new LocalStorageAdapter(), cloud);

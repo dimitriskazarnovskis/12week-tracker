@@ -44,6 +44,19 @@ export function createStore(local: StorageAdapter, cloud: StorageAdapter | null)
     queueCloudSave();
   }
 
+  // Страховка перед разрушающими операциями (замена плана, сброс):
+  // прежние данные прячутся на устройстве и восстанавливаются кнопкой в Профиле.
+  const BACKUP_KEY = 'kd_backup_prev';
+  let backupAt = $state<string | null>(null);
+  try { backupAt = JSON.parse(localStorage.getItem(BACKUP_KEY) ?? 'null')?.when ?? null; } catch {}
+  function stashBackup() {
+    if (!data.plan) return; // нечего беречь
+    try {
+      localStorage.setItem(BACKUP_KEY, JSON.stringify({ when: now(), data: $state.snapshot(data) }));
+      backupAt = now();
+    } catch {}
+  }
+
   return {
     get data() { return data; },
     get status() { return status; },
@@ -107,8 +120,23 @@ export function createStore(local: StorageAdapter, cloud: StorageAdapter | null)
       data.progress.reflections[`${week}`] = text; await persist();
     },
     async setTheme(theme: ThemePref) { data.settings.theme = theme; await persist(); },
-    async importData(d2: AppData) { data = d2; await persist(); },
-    async reset() { data = migrate(null); await persist(); },
+    async importData(d2: AppData) { stashBackup(); data = d2; await persist(); },
+    async reset() { stashBackup(); data = migrate(null); await persist(); },
+
+    get backupAt() { return backupAt; },
+    // Обмен местами: текущее состояние становится новой страховкой — «отмену» можно отменить.
+    async restoreBackup(): Promise<boolean> {
+      try {
+        const b = JSON.parse(localStorage.getItem(BACKUP_KEY) ?? 'null');
+        if (!b?.data) return false;
+        const current = { when: now(), data: $state.snapshot(data) };
+        data = migrate(b.data);
+        localStorage.setItem(BACKUP_KEY, JSON.stringify(current));
+        backupAt = current.when;
+        await persist();
+        return true;
+      } catch { return false; }
+    },
 
     // --- plan editing (goals & tactics stay editable after setup) ---
     async updateGoal(id: string, patch: Partial<Pick<Goal, 'name' | 'metricName' | 'metricTarget' | 'emoji' | 'color'>>) {
