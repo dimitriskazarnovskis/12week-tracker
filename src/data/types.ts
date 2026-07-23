@@ -5,7 +5,7 @@ export type EntryStatus = 'planned' | 'ready' | 'published';
 export type ThemePref = 'auto' | 'light' | 'dark';
 
 export const WEEKS = 12;
-export const APP_VERSION = '1.4.1';
+export const APP_VERSION = '1.4.2';
 export const GOAL_COLORS: Record<GoalColorId, { hex: string; on: string }> = {
   red:    { hex: '#D12329', on: '#FCEAEC' },
   ink:    { hex: '#231F20', on: '#F0EFEE' },

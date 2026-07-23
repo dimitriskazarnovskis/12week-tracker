@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { fetchPlanText, parseIncomingParam } from './planLink';
+import { fetchPlanText, parseIncomingParam, extractParam } from './planLink';
 
 // Шифруем тем же форматом, что генератор make-plan-link.mjs: iv (12 байт) | ciphertext | auth-tag.
 async function encrypt(text: string) {
@@ -27,6 +27,14 @@ describe('planLink', () => {
       .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
     vi.stubGlobal('fetch', vi.fn(async () => new Response(blob)));
     await expect(fetchPlanText('AbCdEfGh12', wrongKey, '/')).rejects.toThrow(/повреждена|неполная/);
+  });
+  it('extractParam принимает любую форму вставленной ссылки', () => {
+    const param = 'AbCdEfGh12_' + 'k'.repeat(22);
+    expect(extractParam('https://t.me/kazarnovskis_bot/dashboard?startapp=' + param)?.id).toBe('AbCdEfGh12');
+    expect(extractParam('https://x.github.io/12week-tracker/#plan=' + param)?.key).toBe('k'.repeat(22));
+    expect(extractParam('  ' + param + '  ')?.id).toBe('AbCdEfGh12'); // голый код с пробелами
+    expect(extractParam('просто текст')).toBeNull();
+    expect(extractParam('')).toBeNull();
   });
   it('parseIncomingParam читает #plan= из адресной строки', () => {
     location.hash = '#plan=AbCdEfGh12_' + 'k'.repeat(22);

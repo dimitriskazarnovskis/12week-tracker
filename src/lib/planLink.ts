@@ -2,16 +2,29 @@
 // ключ расшифровки — только внутри ссылки (?startapp=<id>_<ключ>). Хранилище публичное, содержимое — нет.
 const ID_LEN = 10;
 
-export function parseIncomingParam(): { id: string; key: string } | null {
-  const wa = (globalThis as any)?.Telegram?.WebApp;
-  const raw: string = wa?.initDataUnsafe?.start_param
-    || new URLSearchParams(location.search).get('tgWebAppStartParam')
-    || (location.hash.startsWith('#plan=') ? location.hash.slice(6) : '');
+function parseRaw(raw: string): { id: string; key: string } | null {
   if (!raw || raw.length < ID_LEN + 2 || raw[ID_LEN] !== '_') return null;
   const id = raw.slice(0, ID_LEN);
   const key = raw.slice(ID_LEN + 1);
   if (!/^[A-Za-z0-9]+$/.test(id) || !/^[A-Za-z0-9_-]+$/.test(key)) return null;
   return { id, key };
+}
+
+export function parseIncomingParam(): { id: string; key: string } | null {
+  const wa = (globalThis as any)?.Telegram?.WebApp;
+  const raw: string = wa?.initDataUnsafe?.start_param
+    || new URLSearchParams(location.search).get('tgWebAppStartParam')
+    || (location.hash.startsWith('#plan=') ? location.hash.slice(6) : '');
+  return parseRaw(raw);
+}
+
+// Клиент вставляет ссылку в поле на приветственном экране — принимаем любую форму:
+// полную t.me-ссылку, браузерную с #plan=, или голый код id_ключ.
+export function extractParam(text: string): { id: string; key: string } | null {
+  const t = (text ?? '').trim();
+  if (!t) return null;
+  const m = t.match(/startapp=([A-Za-z0-9_-]+)/) || t.match(/#plan=([A-Za-z0-9_-]+)/);
+  return parseRaw(m ? m[1] : t);
 }
 
 function b64urlToBytes(s: string): Uint8Array {

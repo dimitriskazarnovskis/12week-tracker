@@ -3,6 +3,7 @@
   import type { Goal, Tactic, GoalColorId } from '../../data/types';
   import { GOAL_COLORS, EMOJIS } from '../../data/types';
   import { parseImportFile } from '../../data/exportImport';
+  import { extractParam, fetchPlanText, markApplied } from '../../lib/planLink';
   import { genId } from '../../lib/ids';
   import { tg } from '../../lib/telegram';
   import { formatDay } from '../../data/selectors';
@@ -82,6 +83,27 @@
     err = '';
     step += 1;
   }
+  // Главный путь клиента агентства: вставить персональную ссылку в поле на первом экране.
+  let linkInput = $state('');
+  let linkBusy = $state(false);
+  let linkErr = $state('');
+  async function loadFromLink() {
+    linkErr = '';
+    const p = extractParam(linkInput);
+    if (!p) { linkErr = 'Не похоже на персональную ссылку. Вставьте её целиком — прямо из сообщения консультанта.'; return; }
+    linkBusy = true;
+    try {
+      const text = await fetchPlanText(p.id, p.key, import.meta.env.BASE_URL);
+      const parsed = parseImportFile(text);
+      if (parsed.kind === 'update') { linkErr = 'Это ссылка-обновление. Сначала нужна ссылка с основным планом.'; return; }
+      try { localStorage.removeItem(DRAFT_KEY); } catch {}
+      tg().closingConfirmation(false);
+      markApplied(p.id);
+      await store.importData(parsed.data);
+    } catch (e) { linkErr = String((e as Error).message); }
+    finally { linkBusy = false; }
+  }
+
   // Consultant hands the client a ready-made plan file: it must be loadable from the
   // very first screen — before the wizard, otherwise the client fills everything twice.
   let importErr = $state('');
@@ -115,15 +137,24 @@
 
   {#if step === -1}
     <h1>12 недель к цели</h1>
-    <p class="lead">Ваш трекер маркетинговых целей: достаточно коротко, чтобы не откладывать, — достаточно долго, чтобы увидеть результат.</p>
+    <p class="lead">Ваш трекер маркетинговых целей: цели, задачи недели и контент-план — в одном месте, с сопровождением консультанта.</p>
+
+    <div class="card linkcard">
+      <div class="lb">Персональная ссылка от консультанта</div>
+      <p class="hint2">Вам прислали ссылку с готовым планом? Вставьте её сюда — и ваш кабинет настроится сам.</p>
+      <input class="f" placeholder="Вставьте ссылку сюда" bind:value={linkInput} oninput={() => { if (linkErr) linkErr = ''; }} />
+      {#if linkErr}<div class="err" role="alert">{linkErr}</div>{/if}
+      <button class="btn" onclick={loadFromLink} disabled={linkBusy}>{linkBusy ? 'Загружаю…' : 'Загрузить мой план'}</button>
+    </div>
+
     <div class="card">
       <div class="hrow"><span class="n">1</span><p><b>1–3 цели</b> с измеримым показателем — например, вовлечённость или заявки.</p></div>
       <div class="hrow"><span class="n">2</span><p><b>Задачи недели</b> — конкретные действия, которые повторяются каждую неделю.</p></div>
       <div class="hrow"><span class="n">3</span><p><b>Отмечайте сделанное</b> — приложение считает процент выполнения недели. 85% и выше — отличная неделя!</p></div>
       <div class="hrow"><span class="n">4</span><p><b>Итог недели</b> — пара фраз в конце недели: что сработало, что меняем.</p></div>
     </div>
-    <button class="btn" onclick={() => (step = 0)}>Начать настройку · 2–3 минуты</button>
-    <label class="ghost">Получили файл плана от консультанта? Загрузить<input type="file" accept="application/json" hidden onchange={onPlanFile} /></label>
+    <button class="btn out" onclick={() => (step = 0)}>Настроить самостоятельно · 2–3 минуты</button>
+    <label class="ghost">Или загрузить план из файла<input type="file" accept="application/json" hidden onchange={onPlanFile} /></label>
     {#if importErr}<div class="err" role="alert">{importErr}</div>{/if}
 
   {:else if step === 0}
@@ -214,6 +245,8 @@
   .addt{align-self:flex-start;border:none;background:none;color:var(--red);font:700 13px Montserrat,sans-serif;cursor:pointer;padding:8px 0;min-height:40px}
   .err{padding:11px 13px;border-radius:10px;background:var(--red-soft);color:var(--red);font-size:13px;font-weight:700;line-height:1.45}
   .ghost{text-align:center;color:var(--muted);font-size:13px;font-weight:600;cursor:pointer;padding:10px;min-height:40px;text-decoration:underline;text-underline-offset:3px}
+  .linkcard{border-color:var(--red)}
+  .hint2{font-size:13px;color:var(--body);line-height:1.5}
   .hrow{display:flex;gap:11px;align-items:flex-start}
   .hrow .n{flex-shrink:0;width:26px;height:26px;border-radius:50%;background:var(--red);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800}
   .hrow p{font-size:14px;line-height:1.5;color:var(--body);margin-top:2px}
