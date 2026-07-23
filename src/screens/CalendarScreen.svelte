@@ -12,7 +12,7 @@
   const scheme = $derived(resolveTheme(d.settings.theme, sys.scheme) as 'light' | 'dark');
   const icon: Record<ContentType, string> = { reel: '🎬', carousel: '🎠', story: '📱', post: '📷' };
   const typeName: Record<ContentType, string> = { reel: 'Рилс', carousel: 'Карусель', story: 'Сторис', post: 'Пост' };
-  const label: Record<EntryStatus, string> = { planned: 'Запланировано', ready: 'Готово', published: 'Опубликовано' };
+  const label: Record<EntryStatus, string> = { planned: 'Запланировано', ready: 'В работе', published: 'Опубликовано' };
   const nextStatus: Record<EntryStatus, EntryStatus> = { planned: 'ready', ready: 'published', published: 'planned' };
   const entries = $derived([...(d.plan?.calendar ?? [])].sort((a, b) => a.date.localeCompare(b.date)));
   // Группировка по неделям программы: «Неделя N · даты», до старта и после 12 недель — отдельно.
@@ -164,8 +164,8 @@
   .erow .btn{flex:1}
   .btn.out{background:transparent;border:2px solid var(--line);color:var(--ink)}
   .st{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;padding:9px 10px;border-radius:20px;background:var(--red-soft);color:var(--body);flex-shrink:0;border:none;cursor:pointer;min-height:36px}
-  /* цветовая логика Ergebnis-Dashboard: серый = запланировано, жёлтый = в работе, зелёный = сделано */
-  .st.ready{background:rgba(200,134,11,.18);color:var(--ink)}
+  /* светофор Дмитрия: серый = запланировано, красный = в работе, зелёный = опубликовано */
+  .st.ready{background:var(--red);color:#fff}
   .st.published{background:#2E8B57;color:#fff}
   .x{border:none;background:none;color:var(--muted);font-size:20px;cursor:pointer;line-height:1;min-width:36px;min-height:36px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 </style>
