@@ -16,7 +16,7 @@
   import type { Store } from '../data/store.svelte';
   import { tg } from '../lib/telegram';
   import { resolveTheme, sys } from '../theme/theme.svelte';
-  import { weekScore, currentWeek, tacticsForGoal, programState, weekRange, formatDay, overallStats, todayISO as todayIso } from '../data/selectors';
+  import { weekScore, currentWeek, tacticsForGoal, programState, weekRange, formatDay, overallStats } from '../data/selectors';
   import { WEEKS } from '../data/types';
   import AppHeader from '../components/AppHeader.svelte';
   import WeekStrip from '../components/WeekStrip.svelte';
@@ -128,7 +128,7 @@
   </div>
 
   {#if pstate === 'before'}
-    <div class="notice">Сегодня {formatDay(todayIso())}. Программа начнётся {formatDay(d.plan!.startDate)}, задачи откроются автоматически в день старта.</div>
+    <div class="notice">Ваша программа начнётся {formatDay(d.plan!.startDate)}: задачи откроются автоматически в день старта.</div>
   {:else if pstate === 'done'}
     <div class="notice fin">12 недель завершены! Средний балл {overallStats(d).avgScore}%. Итоги ждут во вкладке «Прогресс».</div>
   {:else if locked}
