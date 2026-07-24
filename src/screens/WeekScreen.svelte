@@ -128,11 +128,11 @@
   </div>
 
   {#if pstate === 'before'}
-    <div class="notice">Сегодня {formatDay(todayIso())}. Программа начнётся {formatDay(d.plan!.startDate)} — задачи откроются автоматически в день старта.</div>
+    <div class="notice">Сегодня {formatDay(todayIso())}. Программа начнётся {formatDay(d.plan!.startDate)}, задачи откроются автоматически в день старта.</div>
   {:else if pstate === 'done'}
-    <div class="notice fin">12 недель завершены! Средний балл — {overallStats(d).avgScore}%. Итоги — во вкладке «Прогресс».</div>
+    <div class="notice fin">12 недель завершены! Средний балл {overallStats(d).avgScore}%. Итоги ждут во вкладке «Прогресс».</div>
   {:else if locked}
-    <div class="notice">Неделя {week} ({range}) ещё не началась — отметки откроются в её первый день.</div>
+    <div class="notice">Неделя {week} ({range}) ещё не началась. Отметки откроются в её первый день.</div>
   {/if}
 
   <div class="herorow">
@@ -164,16 +164,16 @@
 </main>
 
 <style>
-  .bd{padding:3px 16px 14px;display:flex;flex-direction:column;gap:12px}
-  .hello{font-size:14px;font-weight:700;color:var(--body);margin-bottom:6px}
+  .bd{padding:6px 16px 28px;display:flex;flex-direction:column;gap:18px}
+  .hello{font-size:14px;font-weight:700;color:var(--body);margin-bottom:10px}
   .eyebrow{font-size:11px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;color:var(--red)}
   .wk{font-size:29px;font-weight:800;letter-spacing:-.5px;line-height:1;margin-top:2px}
-  .range{font-size:13px;font-weight:600;color:var(--muted);margin-top:4px}
-  .notice{padding:11px 13px;border-radius:12px;background:var(--red-soft,#FCEAEC);color:var(--ink);font-size:13px;font-weight:600;line-height:1.45}
+  .range{font-size:13px;font-weight:600;color:var(--muted);margin-top:6px}
+  .notice{padding:14px 16px;border-radius:12px;background:var(--red-soft,#FCEAEC);color:var(--ink);font-size:13px;font-weight:600;line-height:1.45}
   .notice.fin{background:var(--surface);border:1px solid var(--line)}
   .herorow{display:flex;align-items:center;gap:13px}
   .kpis{display:flex;gap:8px;flex:1;flex-wrap:wrap;min-width:0}
-  .sec{font-size:11px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);margin-top:2px}
+  .sec{font-size:11px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);margin-top:6px}
   .empty{padding:18px;text-align:center;color:var(--muted);font-size:13px;background:var(--surface);border:1px solid var(--line);border-radius:12px}
   .reflect{width:100%;min-height:76px;resize:none;border-radius:12px;border:1px solid var(--line);background:var(--surface);
     color:var(--ink);font:500 16px Montserrat,sans-serif;padding:11px 13px;line-height:1.5;outline:none}

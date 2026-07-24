@@ -141,12 +141,12 @@
   {/if}
 </main>
 <style>
-  .bd{padding:3px 16px 24px;display:flex;flex-direction:column;gap:10px}
-  .wkhead{font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-top:8px}
+  .bd{padding:6px 16px 28px;display:flex;flex-direction:column;gap:12px}
+  .wkhead{font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-top:16px}
   .head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:2px}
   .h{font-size:24px;font-weight:800;letter-spacing:-.5px}
   .add{border:none;background:none;color:var(--red);font:800 13px Montserrat,sans-serif;cursor:pointer;padding:10px 0 10px 10px;flex-shrink:0}
-  .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:13px;display:flex;flex-direction:column;gap:8px}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:10px}
   .lb{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
   .f{width:100%;padding:12px;border:1px solid var(--line);background:var(--bg);border-radius:10px;font:600 16px Montserrat,sans-serif;color:var(--ink);outline:none}
   .f:focus{border-color:var(--red)}
@@ -156,7 +156,7 @@
   .btn{padding:13px;border-radius:10px;border:none;background:var(--red);color:#fff;font:800 13px Montserrat,sans-serif;cursor:pointer;text-align:center}
   .empty{padding:28px 14px;text-align:center;color:var(--muted);font-size:13px;display:flex;flex-direction:column;gap:12px;align-items:center}
   .empty .btn{min-width:200px}
-  .row{display:flex;align-items:center;gap:9px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:9px 11px}
+  .row{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:13px 13px}
   .ic{font-size:18px;flex-shrink:0}
   .mid{flex:1;min-width:0;background:none;border:none;padding:0;text-align:left;cursor:pointer;font-family:inherit;color:inherit}
   .ti{font-size:14px;font-weight:700;overflow-wrap:anywhere}.dt{font-size:11px;color:var(--muted);margin-top:2px}

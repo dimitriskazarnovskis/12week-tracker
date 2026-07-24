@@ -20,13 +20,13 @@
     const period = `${formatDay(plan.startDate, false)} – ${formatDay(programEndISO(plan.startDate), false)}`;
     const goals = plan.goals.map(g => {
       const v = lastKpi(d, g.id);
-      return `${g.emoji} ${g.name} — ${g.metricName}: ${v} из ${g.metricTarget} (${kpiProgress(v, g.metricTarget)}%)`;
+      return `${g.emoji} ${g.name}, ${g.metricName}: ${v} из ${g.metricTarget} (${kpiProgress(v, g.metricTarget)}%)`;
     }).join('\n');
-    return `🏁 Итоги 12 недель (${period})\nВыполнение: средний балл ${st.avgScore}% · отличных недель (≥85%): ${st.excellentWeeks} из ${WEEKS}\n\nЦели:\n${goals}\n\n— Dr. Kazarnovskis & Partners`;
+    return `🏁 Итоги 12 недель (${period})\nВыполнение: средний балл ${st.avgScore}% · отличных недель (≥85%): ${st.excellentWeeks} из ${WEEKS}\n\nЦели:\n${goals}\n\nDr. Kazarnovskis & Partners`;
   }
   async function copySummary() {
     try { await navigator.clipboard.writeText(summaryText()); copied = 'Скопировано ✓ Вставьте сообщением в чат с вашим консультантом.'; }
-    catch { copied = 'Не удалось скопировать — выделите текст вручную.'; }
+    catch { copied = 'Не удалось скопировать. Выделите текст вручную.'; }
   }
 
   // Новый цикл: прошлый уходит в архив (Профиль), недели начинаются заново.
@@ -46,9 +46,9 @@
   {#if done}
     <div class="card fin">
       <div class="cl">Итоги 12 недель</div>
-      <p class="fint">Средний балл — <b>{st.avgScore}%</b> · отличных недель (≥85%) — <b>{st.excellentWeeks} из {WEEKS}</b>.</p>
+      <p class="fint">Средний балл <b>{st.avgScore}%</b> · отличных недель (≥85%): <b>{st.excellentWeeks} из {WEEKS}</b>.</p>
       {#each d.plan!.goals as g (g.id)}
-        <div class="finrow">{g.emoji} {g.name} — {g.metricName}: <b>{lastKpi(d, g.id)}</b> из {g.metricTarget} ({kpiProgress(lastKpi(d, g.id), g.metricTarget)}%)</div>
+        <div class="finrow">{g.emoji} {g.name}, {g.metricName}: <b>{lastKpi(d, g.id)}</b> из {g.metricTarget} ({kpiProgress(lastKpi(d, g.id), g.metricTarget)}%)</div>
       {/each}
       <button class="btn" onclick={copySummary}>Скопировать итоги</button>
       {#if copied}<div class="msg" role="status">{copied}</div>{/if}
@@ -85,14 +85,14 @@
   {/each}
 </main>
 <style>
-  .bd{padding:3px 16px 24px;display:flex;flex-direction:column;gap:12px}
+  .bd{padding:6px 16px 28px;display:flex;flex-direction:column;gap:16px}
   .h{font-size:24px;font-weight:800;letter-spacing:-.5px}
-  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-  .sc{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 6px;text-align:center}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .sc{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 8px;text-align:center}
   .sc b{font-size:22px;font-weight:900;display:block}.sc span{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.2px}
-  .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px}
-  .cl{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;color:var(--body);overflow-wrap:anywhere}
-  .fin{display:flex;flex-direction:column;gap:8px;border-color:var(--red)}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px}
+  .cl{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin-bottom:13px;color:var(--body);overflow-wrap:anywhere}
+  .fin{display:flex;flex-direction:column;gap:10px;border-color:var(--red)}
   .fin .cl{margin-bottom:0}
   .fint{font-size:14px;line-height:1.5;color:var(--body)}
   .fint b{color:var(--ink)}

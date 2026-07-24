@@ -34,7 +34,7 @@ function b64urlToBytes(s: string): Uint8Array {
 
 export async function fetchPlanText(id: string, key: string, baseUrl: string): Promise<string> {
   const res = await fetch(baseUrl + 'plans/' + id + '.bin');
-  if (!res.ok) throw new Error('План по ссылке не найден. Возможно, ссылка устарела — запросите новую у консультанта.');
+  if (!res.ok) throw new Error('План по ссылке не найден. Возможно, ссылка устарела. Запросите новую у консультанта.');
   const buf = new Uint8Array(await res.arrayBuffer());
   const iv = buf.slice(0, 12);
   const data = buf.slice(12);
@@ -43,7 +43,7 @@ export async function fetchPlanText(id: string, key: string, baseUrl: string): P
     const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: iv as BufferSource }, k, data as BufferSource);
     return new TextDecoder().decode(plain);
   } catch {
-    throw new Error('Не удалось открыть план — ссылка повреждена или неполная.');
+    throw new Error('Не удалось открыть план: ссылка повреждена или неполная.');
   }
 }
 

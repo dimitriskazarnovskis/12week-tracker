@@ -51,7 +51,7 @@ export function fromImport(text: string): AppData {
   try { migrated = migrate(raw); }
   catch (e) {
     throw new Error(e instanceof Error && e.message === 'newer-schema'
-      ? 'Файл создан более новой версией приложения — сначала обновите приложение'
+      ? 'Файл создан более новой версией приложения. Сначала обновите приложение'
       : 'Файл повреждён: данные внутри не читаются');
   }
   if (!isAppData(migrated)) throw new Error('Файл не похож на данные дашборда');

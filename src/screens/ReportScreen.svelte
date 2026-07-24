@@ -65,7 +65,7 @@
 <AppHeader {scheme} onToggle={toggleTheme} />
 <main class="bd">
   <h1 class="h">Отчёт месяца</h1>
-  <p class="lead">Цифры из Instagram Insights — раз в месяц, обычно на созвоне с консультантом.</p>
+  <p class="lead">Цифры из Instagram Insights: раз в месяц, обычно на созвоне с консультантом.</p>
 
   <div class="chips">
     {#each months as m (m)}
@@ -104,7 +104,7 @@
   {/if}
 
   <div class="card">
-    <div class="cl">Цифры месяца — {monthLabel(month)}</div>
+    <div class="cl">Цифры месяца: {monthLabel(month)}</div>
     {#each METRICS as f (f.k)}
       <div class="frow">
         <label class="lb" for="rep-{f.k}">{f.label}</label>
@@ -126,11 +126,11 @@
         </div>
       {/if}
     {/each}
-    <div class="hint">Проценты — конверсия из предыдущей ступени. Охват берётся из «Цифр месяца».</div>
+    <div class="hint">Проценты показывают конверсию из предыдущей ступени. Охват берётся из «Цифр месяца».</div>
   </div>
 </main>
 <style>
-  .bd{padding:3px 16px 24px;display:flex;flex-direction:column;gap:12px}
+  .bd{padding:6px 16px 28px;display:flex;flex-direction:column;gap:16px}
   .h{font-size:24px;font-weight:800;letter-spacing:-.5px}
   .lead{font-size:13px;color:var(--body);margin-top:-6px;line-height:1.45}
   .chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}
@@ -138,8 +138,8 @@
     font:700 12px Montserrat,sans-serif;color:var(--body);cursor:pointer;min-height:40px}
   .chip.act{background:var(--ink);color:var(--bg);border-color:var(--ink)}
   .sec{font-size:11px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted)}
-  .tiles{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-  .tile{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 11px;position:relative}
+  .tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .tile{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:13px;position:relative}
   .tl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)}
   .tv{margin-top:4px;font-size:14px;display:flex;align-items:baseline;gap:5px;flex-wrap:wrap}
   .was{color:var(--muted);font-weight:600}
@@ -151,9 +151,9 @@
   .badge.dn{background:rgba(209,35,41,.12);color:var(--red)}
   .inter{font-size:13px;font-weight:600;color:var(--body);padding:10px 12px;border-radius:11px;background:var(--red-soft)}
   .inter b{color:var(--ink)}
-  .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:13px;display:flex;flex-direction:column;gap:8px}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:10px}
   .cl{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:var(--body)}
-  .frow{display:flex;align-items:center;gap:8px}
+  .frow{display:flex;align-items:center;gap:10px;min-height:48px}
   .lb{flex:1;font-size:13px;font-weight:600;color:var(--body);min-width:0}
   .f{width:120px;padding:10px 12px;border:1px solid var(--line);background:var(--bg);border-radius:10px;
     font:700 16px Montserrat,sans-serif;color:var(--ink);outline:none;text-align:right;flex-shrink:0}

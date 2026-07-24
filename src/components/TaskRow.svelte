@@ -5,7 +5,7 @@
   <span class="cb" class:on={done}></span><span class="tx">{text}</span>
 </button>
 <style>
-  .task{display:flex;align-items:center;gap:11px;padding:13px;border-radius:12px;width:100%;text-align:left;
+  .task{display:flex;align-items:center;gap:12px;padding:15px 14px;border-radius:12px;width:100%;text-align:left;
     background:var(--surface);border:1px solid var(--line);color:var(--body);font:600 14px Montserrat,sans-serif;cursor:pointer}
   .task.dn{color:var(--ink)}
   .task:disabled{opacity:.55;cursor:default}

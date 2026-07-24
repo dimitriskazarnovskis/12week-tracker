@@ -20,4 +20,16 @@ describe('pickWeekFeedback', () => {
     expect(f.text).toContain('42%');
     expect(f.title.length).toBeGreaterThan(3);
   });
+  it('совет недели: есть всегда, стабилен для недели, меняется между неделями', () => {
+    const a = pickWeekFeedback('Лейла', 3, 90);
+    expect(a.tip.length).toBeGreaterThan(10);
+    expect(pickWeekFeedback('Лейла', 3, 20).tip).toBe(a.tip); // совет привязан к неделе, не к результату
+    expect(pickWeekFeedback('Лейла', 4, 90).tip).not.toBe(a.tip);
+  });
+  it('правило Дмитрия: в текстах нет длинных тире', () => {
+    for (let w = 1; w <= 12; w++) for (const s of [95, 60, 10]) {
+      const f = pickWeekFeedback('Лейла', w, s);
+      expect(f.title + f.text + f.tip).not.toContain('—');
+    }
+  });
 });

@@ -90,7 +90,7 @@
   async function loadFromLink() {
     linkErr = '';
     const p = extractParam(linkInput);
-    if (!p) { linkErr = 'Не похоже на персональную ссылку. Вставьте её целиком — прямо из сообщения консультанта.'; return; }
+    if (!p) { linkErr = 'Не похоже на персональную ссылку. Вставьте её целиком, прямо из сообщения консультанта.'; return; }
     linkBusy = true;
     try {
       const text = await fetchPlanText(p.id, p.key, import.meta.env.BASE_URL);
@@ -137,27 +137,27 @@
 
   {#if step === -1}
     <h1>12 недель к цели</h1>
-    <p class="lead">Ваш трекер маркетинговых целей: цели, задачи недели и контент-план — в одном месте, с сопровождением консультанта.</p>
+    <p class="lead">Ваш трекер маркетинговых целей: цели, задачи недели и контент-план в одном месте, с сопровождением консультанта.</p>
 
     <div class="card linkcard">
       <div class="lb">Персональная ссылка от консультанта</div>
-      <p class="hint2">Вам прислали ссылку с готовым планом? Вставьте её сюда — и ваш кабинет настроится сам.</p>
+      <p class="hint2">Вам прислали ссылку с готовым планом? Вставьте её сюда, и ваш кабинет настроится сам.</p>
       <input class="f" placeholder="Вставьте ссылку сюда" bind:value={linkInput} oninput={() => { if (linkErr) linkErr = ''; }} />
       {#if linkErr}<div class="err" role="alert">{linkErr}</div>{/if}
       <button class="btn" onclick={loadFromLink} disabled={linkBusy}>{linkBusy ? 'Загружаю…' : 'Загрузить мой план'}</button>
     </div>
 
     <div class="card">
-      <div class="hrow"><span class="n">1</span><p><b>1–3 цели</b> с измеримым показателем — например, вовлечённость или заявки.</p></div>
-      <div class="hrow"><span class="n">2</span><p><b>Задачи недели</b> — конкретные действия, которые повторяются каждую неделю.</p></div>
-      <div class="hrow"><span class="n">3</span><p><b>Отмечайте сделанное</b> — приложение считает процент выполнения недели. 85% и выше — отличная неделя!</p></div>
-      <div class="hrow"><span class="n">4</span><p><b>Итог недели</b> — пара фраз в конце недели: что сработало, что меняем.</p></div>
+      <div class="hrow"><span class="n">1</span><p><b>1–3 цели</b> с измеримым показателем: например, вовлечённость или заявки.</p></div>
+      <div class="hrow"><span class="n">2</span><p><b>Задачи недели</b>: конкретные действия, которые повторяются каждую неделю.</p></div>
+      <div class="hrow"><span class="n">3</span><p><b>Отмечайте сделанное</b>: приложение считает процент выполнения недели. 85% и выше = отличная неделя!</p></div>
+      <div class="hrow"><span class="n">4</span><p><b>Итог недели</b>: пара фраз в конце недели, что сработало и что меняем.</p></div>
     </div>
     {#if store.data.settings.activated}
       <!-- самостоятельная настройка доступна только тем, кто уже входил по персональной ссылке -->
       <button class="btn out" onclick={() => (step = 0)}>Настроить самостоятельно · 2–3 минуты</button>
     {:else}
-      <p class="closed">Доступ к приложению — по персональной ссылке от Dr. Kazarnovskis &amp; Partners.</p>
+      <p class="closed">Доступ к приложению выдаётся персональной ссылкой от Dr. Kazarnovskis &amp; Partners.</p>
     {/if}
     <label class="ghost">Или загрузить план из файла<input type="file" accept="application/json" hidden onchange={onPlanFile} /></label>
     {#if importErr}<div class="err" role="alert">{importErr}</div>{/if}
@@ -208,7 +208,7 @@
 
   {:else}
     <h1>Дата старта</h1>
-    <p class="lead">Лучший день — понедельник, мы уже подставили ближайший.</p>
+    <p class="lead">Лучший день для старта: понедельник. Ближайший уже подставлен.</p>
     <div class="card">
       <label class="lb" for="startdate">Первый день 12 недель</label>
       <input id="startdate" class="f" type="date" bind:value={startDate} />
@@ -220,13 +220,13 @@
 </div>
 
 <style>
-  .setup{padding:calc(20px + env(safe-area-inset-top)) 16px 32px;display:flex;flex-direction:column;gap:12px}
+  .setup{padding:calc(22px + env(safe-area-inset-top)) 16px 36px;display:flex;flex-direction:column;gap:16px}
   .brand{display:flex;align-items:center;gap:7px;justify-content:center;margin-bottom:4px}
   .brand img{height:20px}.brand b{font-size:11px;font-weight:700}.brand b span{color:var(--red)}
   .steps{text-align:center;font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--red)}
   h1{font-size:26px;font-weight:800;letter-spacing:-.5px;line-height:1.05}
-  .lead{font-size:13px;color:var(--body);margin-top:-6px}
-  .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:13px;display:flex;flex-direction:column;gap:8px}
+  .lead{font-size:13px;color:var(--body);margin-top:-6px;line-height:1.55}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:10px}
   .ghead{display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;min-width:0}
   .ghead b{overflow-wrap:anywhere}
   .x{border:none;background:none;color:var(--red);font-size:22px;cursor:pointer;line-height:1;min-width:40px;min-height:40px;display:flex;align-items:center;justify-content:center;flex-shrink:0}

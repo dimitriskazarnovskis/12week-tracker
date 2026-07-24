@@ -30,14 +30,14 @@
   <div class="goal">цель {target}{unit}</div>
 </div>
 <style>
-  .kpi{flex:1 1 45%;min-width:0;border-radius:13px;padding:10px 11px;background:var(--surface);border:1px solid var(--line)}
+  .kpi{flex:1 1 45%;min-width:0;border-radius:13px;padding:13px 13px;background:var(--surface);border:1px solid var(--line)}
   .t{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);overflow-wrap:anywhere}
   .v{font-size:18px;font-weight:800;line-height:1.1;margin-top:2px;color:var(--ink)}
   .v small{font-size:10px;opacity:.6;font-weight:700}
   .inp{width:100%;border:none;background:transparent;outline:none;padding:0;font-family:inherit;appearance:textfield;-moz-appearance:textfield}
   .inp::-webkit-outer-spin-button,.inp::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
   .inp:focus{color:var(--red)}
-  .pbar{height:5px;border-radius:3px;margin-top:8px;overflow:hidden;background:var(--ring-track)}
+  .pbar{height:5px;border-radius:3px;margin-top:10px;overflow:hidden;background:var(--ring-track)}
   .pbar i{display:block;height:100%;border-radius:3px;background:var(--red);transition:width .4s ease}
-  .goal{font-size:10px;font-weight:700;color:var(--muted);margin-top:5px;text-transform:uppercase;letter-spacing:.3px}
+  .goal{font-size:10px;font-weight:700;color:var(--muted);margin-top:7px;text-transform:uppercase;letter-spacing:.3px}
 </style>

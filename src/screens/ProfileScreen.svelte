@@ -29,7 +29,7 @@
       // Mini Apps have no download manager — the clipboard is the reliable path.
       try {
         await navigator.clipboard.writeText(json);
-        dataMsg = 'Скопировано. Вставьте сообщением в «Избранное» в Telegram — это и будет резервная копия.';
+        dataMsg = 'Скопировано. Вставьте сообщением в «Избранное» в Telegram: это и будет резервная копия.';
         dataMsgBad = false;
       } catch {
         dataMsg = 'Не удалось скопировать. Откройте дашборд в обычном браузере и выгрузите файл там.';
@@ -69,7 +69,7 @@
     if (await dialogs.confirm('Сбросить все данные? Это удалит план и весь прогресс. (Кнопка «Вернуть данные» позволит передумать.)')) store.reset();
   }
   async function restorePrev() {
-    if (!(await dialogs.confirm('Вернуть данные, какими они были до последней замены или сброса? Текущее состояние тоже сохранится — действие можно отменить повторным нажатием.'))) return;
+    if (!(await dialogs.confirm('Вернуть данные, какими они были до последней замены или сброса? Текущее состояние тоже сохранится, действие можно отменить повторным нажатием.'))) return;
     const ok = await store.restoreBackup();
     dataMsg = ok ? 'Данные восстановлены ✓' : 'Не удалось восстановить резервную копию.';
     dataMsgBad = !ok;
@@ -83,10 +83,10 @@
     const st = overallStats(fake);
     const goals = c.plan.goals.map(g => {
       const v = lastKpi(fake, g.id);
-      return `${g.emoji} ${g.name} — ${g.metricName}: ${v} из ${g.metricTarget} (${kpiProgress(v, g.metricTarget)}%)`;
+      return `${g.emoji} ${g.name}, ${g.metricName}: ${v} из ${g.metricTarget} (${kpiProgress(v, g.metricTarget)}%)`;
     }).join('\n');
     const period = `${formatDay(c.plan.startDate, false)} – ${formatDay(programEndISO(c.plan.startDate), false)}`;
-    return `🏁 Итоги цикла (${period})\nСредний балл ${st.avgScore}% · отличных недель ${st.excellentWeeks} из 12\n\n${goals}\n\n— Dr. Kazarnovskis & Partners`;
+    return `🏁 Итоги цикла (${period})\nСредний балл ${st.avgScore}% · отличных недель ${st.excellentWeeks} из 12\n\n${goals}\n\nDr. Kazarnovskis & Partners`;
   }
   async function copyCycle(c: ArchivedCycle) {
     try { await navigator.clipboard.writeText(cycleSummary(c)); dataMsg = 'Итоги цикла скопированы ✓'; dataMsgBad = false; }
@@ -110,7 +110,7 @@
   {#if store.saveError}
     <div class="warn bad">Не удаётся сохранить данные на устройстве. Освободите место или проверьте настройки браузера.</div>
   {:else if inTelegram && !store.cloudOk}
-    <div class="warn">Облачная копия обновится автоматически, как только появится связь. Все данные надёжно сохранены на этом устройстве — ничего не потеряно.</div>
+    <div class="warn">Облачная копия обновится автоматически, как только появится связь. Все данные надёжно сохранены на этом устройстве, ничего не потеряно.</div>
   {/if}
 
   <div class="card">
@@ -168,7 +168,7 @@
     {#if d.plan && d.plan.goals.length < 3}
       <button class="addt" onclick={addNewGoal}>+ Добавить цель</button>
     {:else if d.plan}
-      <div class="msg">Максимум 3 цели — так фокус не размывается.</div>
+      <div class="msg">Максимум 3 цели: так фокус не размывается.</div>
     {/if}
   </div>
 
@@ -177,7 +177,7 @@
       <div class="cl">Дата старта</div>
       <input class="f" type="date" value={d.plan.startDate}
         onchange={(e) => store.updateStartDate((e.target as HTMLInputElement).value)} aria-label="Дата старта программы" />
-      <div class="msg">Дата старта программы: {formatDay(d.plan.startDate)}. Сдвиг пересчитает недели — менять лучше до начала.</div>
+      <div class="msg">Дата старта программы: {formatDay(d.plan.startDate)}. Сдвиг пересчитает недели, менять лучше до начала.</div>
     </div>
   {/if}
 
@@ -209,11 +209,11 @@
   <div class="foot">Dr. Kazarnovskis &amp; Partners · версия {APP_VERSION}</div>
 </main>
 <style>
-  .bd{padding:3px 16px 24px;display:flex;flex-direction:column;gap:12px}
+  .bd{padding:6px 16px 28px;display:flex;flex-direction:column;gap:16px}
   .h{font-size:24px;font-weight:800;letter-spacing:-.5px}
   .warn{padding:11px 13px;border-radius:12px;background:var(--red-soft);color:var(--ink);font-size:13px;font-weight:600;line-height:1.45}
   .warn.bad{color:var(--red)}
-  .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:12px}
   .cl{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:var(--body)}
   .seg{display:flex;gap:6px}
   .seg button{flex:1;padding:12px 9px;border:1px solid var(--line);background:var(--bg);border-radius:9px;font:700 12px Montserrat,sans-serif;cursor:pointer;color:var(--body)}
