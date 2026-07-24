@@ -29,10 +29,12 @@ describe('pickWeekFeedback', () => {
     expect(pickWeekFeedback('Лейла', 4, 90).tip).not.toBe(great.tip); // следующая неделя: другой совет
     expect(low.tip).toMatch(/план|задач|недел|блок|консультант/i); // советы про исполнение, не про SMM
   });
-  it('правило Дмитрия: в текстах нет длинных тире', () => {
+  it('правила Дмитрия: без длинных тире и без упоминаний «метода»', () => {
     for (let w = 1; w <= 12; w++) for (const s of [95, 60, 10]) {
       const f = pickWeekFeedback('Лейла', w, s);
-      expect(f.title + f.text + f.tip).not.toContain('—');
+      const all = f.title + f.text + f.tip;
+      expect(all).not.toContain('—');
+      expect(all.toLowerCase()).not.toContain('метод'); // совет звучит как совет, без ссылок на учебник
     }
   });
 });
