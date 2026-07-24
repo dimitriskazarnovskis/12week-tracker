@@ -96,6 +96,16 @@ describe('store', () => {
     expect(s.data.progress.checks['2:t1']).toBeUndefined();
     expect(s.data.progress.kpis['2:g1']).toBeUndefined();
   });
+  it('активация переживает «Сбросить всё»: контент стирается, доступ остаётся', async () => {
+    const s = createStore(new LocalStorageAdapter(), null); await s.load();
+    const d2 = migrate(null);
+    d2.plan = { planId: 'p', planVersion: 1, clientId: '', clientName: 'Лейла', startDate: '2026-07-27', goals: [], tactics: [], calendar: [] };
+    await s.importData(d2);
+    expect(s.data.settings.activated).toBe(true); // импорт плана = пропуск
+    await s.reset();
+    expect(s.data.plan).toBeNull();               // контент стёрт
+    expect(s.data.settings.activated).toBe(true); // но клиент остался «своим»
+  });
   it('startNewCycle: прошлый цикл в архив, недели с нуля, цели по желанию переносятся', async () => {
     const s = createStore(new LocalStorageAdapter(), null); await s.load();
     s.setPlan({ planId: 'p_old', planVersion: 1, clientId: 'leyla', startDate: '2026-07-27',

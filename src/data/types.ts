@@ -5,7 +5,7 @@ export type EntryStatus = 'planned' | 'ready' | 'published';
 export type ThemePref = 'auto' | 'light' | 'dark';
 
 export const WEEKS = 12;
-export const APP_VERSION = '1.5.0';
+export const APP_VERSION = '1.6.0';
 export const GOAL_COLORS: Record<GoalColorId, { hex: string; on: string }> = {
   red:    { hex: '#D12329', on: '#FCEAEC' },
   ink:    { hex: '#231F20', on: '#F0EFEE' },
@@ -22,7 +22,7 @@ export interface CalendarEntry { id: ID; date: string; type: ContentType; title:
 export interface Vision { y3?: string; y5?: string; y10?: string; }
 
 export interface Plan {
-  planId: ID; planVersion: number; clientId: string; startDate: string;
+  planId: ID; planVersion: number; clientId: string; clientName?: string; startDate: string;
   goals: Goal[]; tactics: Tactic[]; calendar: CalendarEntry[]; vision?: Vision;
 }
 // Месячный отчёт (вкладка «Отчёт», зеркало Ergebnis-Dashboard без денежного блока).
@@ -38,7 +38,9 @@ export interface Progress {
   reflections: Record<string, string>;
   monthly?: Record<string, MonthlyReport>;
 }
-export interface Settings { theme: ThemePref; lang: 'ru'; }
+// activated: клиент один раз вошёл по персональной ссылке/файлу — дальше приложение
+// открыто для него навсегда (переживает «Сбросить всё»).
+export interface Settings { theme: ThemePref; lang: 'ru'; activated?: boolean; }
 export interface Meta { schemaVersion: number; createdAt: string; updatedAt: string; }
 // Завершённый 12-недельный цикл целиком (план + весь прогресс) — «Начать новый цикл» складывает сюда.
 export interface ArchivedCycle { plan: Plan; progress: Progress; archivedAt: string; }

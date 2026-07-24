@@ -136,8 +136,20 @@ export function createStore(local: StorageAdapter, cloud: StorageAdapter | null)
       data.progress.reflections[`${week}`] = text; await persist();
     },
     async setTheme(theme: ThemePref) { data.settings.theme = theme; await persist(); },
-    async importData(d2: AppData) { stashBackup(); data = d2; await persist(); },
-    async reset() { stashBackup(); data = migrate(null); await persist(); },
+    async importData(d2: AppData) {
+      stashBackup();
+      data = d2;
+      data.settings.activated = true; // план от консультанта = пропуск в приложение навсегда
+      await persist();
+    },
+    // «Сбросить всё» стирает контент, но НЕ выписывает из приложения: активация и тема остаются.
+    async reset() {
+      stashBackup();
+      const keep = { ...data.settings };
+      data = migrate(null);
+      data.settings = keep;
+      await persist();
+    },
 
     // Завершение 12 недель → прошлый цикл в архив (виден в Профиле, синхронизируется
     // в облако и в резервные файлы), новый счёт недель с чистого листа.

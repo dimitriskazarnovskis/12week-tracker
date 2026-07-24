@@ -153,7 +153,12 @@
       <div class="hrow"><span class="n">3</span><p><b>Отмечайте сделанное</b> — приложение считает процент выполнения недели. 85% и выше — отличная неделя!</p></div>
       <div class="hrow"><span class="n">4</span><p><b>Итог недели</b> — пара фраз в конце недели: что сработало, что меняем.</p></div>
     </div>
-    <button class="btn out" onclick={() => (step = 0)}>Настроить самостоятельно · 2–3 минуты</button>
+    {#if store.data.settings.activated}
+      <!-- самостоятельная настройка доступна только тем, кто уже входил по персональной ссылке -->
+      <button class="btn out" onclick={() => (step = 0)}>Настроить самостоятельно · 2–3 минуты</button>
+    {:else}
+      <p class="closed">Доступ к приложению — по персональной ссылке от Dr. Kazarnovskis &amp; Partners.</p>
+    {/if}
     <label class="ghost">Или загрузить план из файла<input type="file" accept="application/json" hidden onchange={onPlanFile} /></label>
     {#if importErr}<div class="err" role="alert">{importErr}</div>{/if}
 
@@ -246,6 +251,7 @@
   .err{padding:11px 13px;border-radius:10px;background:var(--red-soft);color:var(--red);font-size:13px;font-weight:700;line-height:1.45}
   .ghost{text-align:center;color:var(--muted);font-size:13px;font-weight:600;cursor:pointer;padding:10px;min-height:40px;text-decoration:underline;text-underline-offset:3px}
   .linkcard{border-color:var(--red)}
+  .closed{text-align:center;font-size:12.5px;color:var(--muted);line-height:1.5}
   .hint2{font-size:13px;color:var(--body);line-height:1.5}
   .hrow{display:flex;gap:11px;align-items:flex-start}
   .hrow .n{flex-shrink:0;width:26px;height:26px;border-radius:50%;background:var(--red);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800}

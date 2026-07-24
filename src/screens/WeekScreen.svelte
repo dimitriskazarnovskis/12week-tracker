@@ -12,7 +12,7 @@
 </script>
 
 <script lang="ts">
-  import { onDestroy } from 'svelte';
+  import { onDestroy, onMount } from 'svelte';
   import type { Store } from '../data/store.svelte';
   import { tg } from '../lib/telegram';
   import { resolveTheme, sys } from '../theme/theme.svelte';
@@ -24,12 +24,13 @@
   import KpiTile from '../components/KpiTile.svelte';
   import TaskRow from '../components/TaskRow.svelte';
   import Confetti from '../components/Confetti.svelte';
+  import WeekFeedback from '../components/WeekFeedback.svelte';
+  import { pickWeekFeedback, type WeekFeedbackText } from '../lib/motivation';
 
   let { store }: { store: Store } = $props();
   const d = $derived(store.data);
   // svelte-ignore state_referenced_locally -- intentionally captures the week at mount time
   let week = $state(currentWeek(store.data.plan!.startDate, new Date()));
-  const scores = $derived(Array.from({ length: WEEKS }, (_, i) => weekScore(d, i + 1)));
   const score = $derived(weekScore(d, week));
   const block = $derived(week <= 4 ? 'Блок 1 · Привычка' : week <= 8 ? 'Блок 2 · Ускорение' : 'Блок 3 · Финиш');
   const scheme = $derived(resolveTheme(d.settings.theme, sys.scheme) as 'light' | 'dark');
@@ -39,6 +40,30 @@
   // Future weeks are view-only: pre-checking week 12 on day one would fake the stats.
   const locked = $derived(pstate === 'before' || week > today);
   const range = $derived(weekRange(d.plan!.startDate, week));
+  const clientName = $derived(d.plan?.clientName || tg().userFirstName() || '');
+
+  // Итог прошедшей недели — тёплое окошко, один раз на неделю на устройстве.
+  let weekFeedback = $state<WeekFeedbackText | null>(null);
+  let feedbackTag = '';
+  onMount(() => {
+    if (pstate === 'before') return;
+    const lastWeek = pstate === 'done' ? WEEKS : today - 1;
+    if (lastWeek < 1) return;
+    feedbackTag = `${d.plan?.planId ?? ''}:${lastWeek}`;
+    try {
+      const shown: string[] = JSON.parse(localStorage.getItem('kd_weekfb') ?? '[]');
+      if (shown.includes(feedbackTag)) return;
+    } catch {}
+    weekFeedback = pickWeekFeedback(clientName, lastWeek, weekScore(d, lastWeek));
+  });
+  function closeFeedback() {
+    weekFeedback = null;
+    try {
+      const shown: string[] = JSON.parse(localStorage.getItem('kd_weekfb') ?? '[]');
+      shown.push(feedbackTag);
+      localStorage.setItem('kd_weekfb', JSON.stringify(shown.slice(-60)));
+    } catch {}
+  }
 
   let showConfetti = $state(false);
   $effect(() => {
@@ -91,10 +116,12 @@
 </script>
 
 {#if showConfetti}<Confetti />{/if}
+{#if weekFeedback}<WeekFeedback feedback={weekFeedback} onClose={closeFeedback} />{/if}
 <AppHeader {scheme} onToggle={toggleTheme} />
-<WeekStrip current={week} todayWeek={pstate === 'active' ? today : 0} {scores} onPick={(w) => (week = w)} />
+<WeekStrip current={week} todayWeek={pstate === 'active' ? today : pstate === 'done' ? WEEKS + 1 : 0} onPick={(w) => (week = w)} />
 <main class="bd">
   <div>
+    {#if clientName}<div class="hello">Привет, {clientName}! 👋</div>{/if}
     <div class="eyebrow">{block}</div>
     <h1 class="wk">Неделя {week}</h1>
     <div class="range">{range}</div>
@@ -138,6 +165,7 @@
 
 <style>
   .bd{padding:3px 16px 14px;display:flex;flex-direction:column;gap:12px}
+  .hello{font-size:14px;font-weight:700;color:var(--body);margin-bottom:6px}
   .eyebrow{font-size:11px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;color:var(--red)}
   .wk{font-size:29px;font-weight:800;letter-spacing:-.5px;line-height:1;margin-top:2px}
   .range{font-size:13px;font-weight:600;color:var(--muted);margin-top:4px}

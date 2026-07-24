@@ -17,6 +17,7 @@ export function tg() {
     colorScheme(): Scheme { return (wa()?.colorScheme as Scheme) ?? 'light'; },
     onThemeChanged(cb: () => void) { try { wa()?.onEvent?.('themeChanged', cb); } catch {} },
     userId(): string | null { const id = wa()?.initDataUnsafe?.user?.id; return id != null ? String(id) : null; },
+    userFirstName(): string | null { return wa()?.initDataUnsafe?.user?.first_name || null; },
     haptic(kind: Haptic) {
       const h = wa()?.HapticFeedback; if (!h) return;
       try {
