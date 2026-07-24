@@ -20,11 +20,14 @@ describe('pickWeekFeedback', () => {
     expect(f.text).toContain('42%');
     expect(f.title.length).toBeGreaterThan(3);
   });
-  it('совет недели: есть всегда, стабилен для недели, меняется между неделями', () => {
-    const a = pickWeekFeedback('Лейла', 3, 90);
-    expect(a.tip.length).toBeGreaterThan(10);
-    expect(pickWeekFeedback('Лейла', 3, 20).tip).toBe(a.tip); // совет привязан к неделе, не к результату
-    expect(pickWeekFeedback('Лейла', 4, 90).tip).not.toBe(a.tip);
+  it('совет подбирается под исход недели и стабилен для одинаковой ситуации', () => {
+    const great = pickWeekFeedback('Лейла', 3, 90);
+    const low = pickWeekFeedback('Лейла', 3, 20);
+    expect(great.tip.length).toBeGreaterThan(10);
+    expect(low.tip).not.toBe(great.tip); // провал и успех получают РАЗНЫЕ советы
+    expect(pickWeekFeedback('Лейла', 3, 90).tip).toBe(great.tip); // одинаковая ситуация: стабильный совет
+    expect(pickWeekFeedback('Лейла', 4, 90).tip).not.toBe(great.tip); // следующая неделя: другой совет
+    expect(low.tip).toMatch(/план|задач|недел|блок|консультант/i); // советы про исполнение, не про SMM
   });
   it('правило Дмитрия: в текстах нет длинных тире', () => {
     for (let w = 1; w <= 12; w++) for (const s of [95, 60, 10]) {
