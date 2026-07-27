@@ -16,6 +16,8 @@ function isCalendarEntry(e: any): boolean {
 }
 function isPlan(p: any): boolean {
   return !!p && typeof p === 'object' && typeof p.startDate === 'string'
+    && (p.weeks == null || typeof p.weeks === 'number')
+    && (p.tier == null || typeof p.tier === 'string')
     && Array.isArray(p.goals) && p.goals.every(isGoal)
     && Array.isArray(p.tactics) && p.tactics.every(isTactic)
     && Array.isArray(p.calendar) && p.calendar.every(isCalendarEntry);

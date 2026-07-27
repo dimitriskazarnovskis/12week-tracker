@@ -23,6 +23,9 @@ export interface Vision { y3?: string; y5?: string; y10?: string; }
 
 export interface Plan {
   planId: ID; planVersion: number; clientId: string; clientName?: string; startDate: string;
+  // Пакеты: длина программы в неделях (дефолт 12) и тариф (start = пробный, «Отчёт» заперт).
+  // Читать ТОЛЬКО через planWeeks()/planTier() из selectors — там дефолты и кламп.
+  weeks?: number; tier?: 'start' | 'full';
   goals: Goal[]; tactics: Tactic[]; calendar: CalendarEntry[]; vision?: Vision;
 }
 // Месячный отчёт (вкладка «Отчёт», зеркало Ergebnis-Dashboard без денежного блока).

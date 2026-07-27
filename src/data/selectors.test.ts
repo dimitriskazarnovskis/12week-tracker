@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { weekScore, currentWeek, kpiProgress, overallStats, programState, weekRange, formatDay, lastKpi, programEndISO, reportMonths, monthLabel, growthHealth, weekOfDate } from './selectors';
+import { weekScore, currentWeek, kpiProgress, overallStats, programState, weekRange, formatDay, lastKpi, programEndISO, reportMonths, monthLabel, growthHealth, weekOfDate, planWeeks, planTier } from './selectors';
 import type { AppData } from './types';
 import { emptyProgress } from './types';
 
@@ -90,5 +90,25 @@ describe('selectors', () => {
     d.progress.checks['2:t1'] = true;
     const s = overallStats(d);
     expect(s.weeksActive).toBe(2); expect(s.avgScore).toBe(75); expect(s.excellentWeeks).toBe(1);
+  });
+});
+
+describe('planWeeks / planTier', () => {
+  it('дефолты: план без полей и null = 12 недель, full', () => {
+    expect(planWeeks(null)).toBe(12);
+    expect(planWeeks({})).toBe(12);
+    expect(planTier(null)).toBe('full');
+    expect(planTier({})).toBe('full');
+  });
+  it('weeks читается и клампится в 2..12', () => {
+    expect(planWeeks({ weeks: 2 })).toBe(2);
+    expect(planWeeks({ weeks: 1 })).toBe(2);
+    expect(planWeeks({ weeks: 99 })).toBe(12);
+    expect(planWeeks({ weeks: 3.7 })).toBe(4);
+    expect(planWeeks({ weeks: NaN })).toBe(12);
+  });
+  it('tier: start распознаётся, мусор = full', () => {
+    expect(planTier({ tier: 'start' })).toBe('start');
+    expect(planTier({ tier: 'vip' })).toBe('full');
   });
 });

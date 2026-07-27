@@ -1,6 +1,14 @@
 import type { AppData, ID, MonthlyReport } from './types';
 import { WEEKS, checkKey } from './types';
 
+// Единственная точка чтения длины программы и тарифа. Планы без полей = 12 недель, full.
+export function planWeeks(plan: { weeks?: number } | null | undefined): number {
+  const w = Math.round(plan?.weeks ?? WEEKS);
+  return Number.isFinite(w) ? Math.min(WEEKS, Math.max(2, w)) : WEEKS;
+}
+export function planTier(plan: { tier?: string } | null | undefined): 'start' | 'full' {
+  return plan?.tier === 'start' ? 'start' : 'full';
+}
 export function tacticsForGoal(d: AppData, goalId: ID) {
   return d.plan ? d.plan.tactics.filter(t => t.goalId === goalId) : [];
 }
