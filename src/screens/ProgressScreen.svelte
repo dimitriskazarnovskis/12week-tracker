@@ -1,28 +1,29 @@
 <script lang="ts">
   import type { Store } from '../data/store.svelte';
-  import { overallStats, currentWeek, weekScore, programState, lastKpi, kpiProgress, programEndISO, formatDay, nextMondayISO } from '../data/selectors';
+  import { overallStats, currentWeek, weekScore, programState, lastKpi, kpiProgress, programEndISO, formatDay, nextMondayISO, planWeeks, planTier } from '../data/selectors';
   import { dialogs } from '../lib/telegram';
-  import { WEEKS } from '../data/types';
   import { resolveTheme, sys } from '../theme/theme.svelte';
   import AppHeader from '../components/AppHeader.svelte';
   import TrendChart from '../components/TrendChart.svelte';
   let { store }: { store: Store } = $props();
   const d = $derived(store.data);
   const st = $derived(overallStats(d));
-  const cur = $derived(currentWeek(d.plan!.startDate, new Date()));
+  const nWeeks = $derived(planWeeks(d.plan));
+  const tier = $derived(planTier(d.plan));
+  const cur = $derived(currentWeek(d.plan!.startDate, new Date(), nWeeks));
   const scheme = $derived(resolveTheme(d.settings.theme, sys.scheme) as 'light' | 'dark');
-  const done = $derived(programState(d.plan!.startDate, new Date()) === 'done');
+  const done = $derived(programState(d.plan!.startDate, new Date(), nWeeks) === 'done');
   let copied = $state('');
   function toggleTheme() { store.setTheme(scheme === 'dark' ? 'light' : 'dark'); }
 
   function summaryText(): string {
     const plan = d.plan!;
-    const period = `${formatDay(plan.startDate, false)} – ${formatDay(programEndISO(plan.startDate), false)}`;
+    const period = `${formatDay(plan.startDate, false)} – ${formatDay(programEndISO(plan.startDate, nWeeks), false)}`;
     const goals = plan.goals.map(g => {
       const v = lastKpi(d, g.id);
       return `${g.emoji} ${g.name}, ${g.metricName}: ${v} из ${g.metricTarget} (${kpiProgress(v, g.metricTarget)}%)`;
     }).join('\n');
-    return `🏁 Итоги 12 недель (${period})\nВыполнение: средний балл ${st.avgScore}% · отличных недель (≥85%): ${st.excellentWeeks} из ${WEEKS}\n\nЦели:\n${goals}\n\nDr. Kazarnovskis & Partners`;
+    return `🏁 Итоги ${nWeeks} недель (${period})\nВыполнение: средний балл ${st.avgScore}% · отличных недель (≥85%): ${st.excellentWeeks} из ${nWeeks}\n\nЦели:\n${goals}\n\nDr. Kazarnovskis & Partners`;
   }
   async function copySummary() {
     try { await navigator.clipboard.writeText(summaryText()); copied = 'Скопировано ✓ Вставьте сообщением в чат с вашим консультантом.'; }
@@ -45,15 +46,17 @@
 
   {#if done}
     <div class="card fin">
-      <div class="cl">Итоги 12 недель</div>
-      <p class="fint">Средний балл <b>{st.avgScore}%</b> · отличных недель (≥85%): <b>{st.excellentWeeks} из {WEEKS}</b>.</p>
+      <div class="cl">Итоги {nWeeks} недель</div>
+      <p class="fint">Средний балл <b>{st.avgScore}%</b> · отличных недель (≥85%): <b>{st.excellentWeeks} из {nWeeks}</b>.</p>
       {#each d.plan!.goals as g (g.id)}
         <div class="finrow">{g.emoji} {g.name}, {g.metricName}: <b>{lastKpi(d, g.id)}</b> из {g.metricTarget} ({kpiProgress(lastKpi(d, g.id), g.metricTarget)}%)</div>
       {/each}
       <button class="btn" onclick={copySummary}>Скопировать итоги</button>
       {#if copied}<div class="msg" role="status">{copied}</div>{/if}
 
-      {#if !cycleFormOpen}
+      {#if tier !== 'full'}
+        <!-- Пробный пакет: новый цикл не предлагаем, продолжение обсуждается с нами -->
+      {:else if !cycleFormOpen}
         <button class="btn out" onclick={() => (cycleFormOpen = true)}>Начать новый цикл 12 недель</button>
       {:else}
         <div class="cycleform">
@@ -69,18 +72,18 @@
     </div>
   {/if}
   <div class="stats">
-    <div class="sc"><b>{st.weeksActive}/{WEEKS}</b><span>недель в работе</span></div>
+    <div class="sc"><b>{st.weeksActive}/{nWeeks}</b><span>недель в работе</span></div>
     <div class="sc"><b>{st.avgScore}%</b><span>средний балл</span></div>
     <div class="sc"><b>{st.excellentWeeks}</b><span>недель ≥ 85%</span></div>
   </div>
   <div class="card">
     <div class="cl">Выполнение по неделям, %</div>
-    <TrendChart values={Array.from({ length: WEEKS }, (_, i) => weekScore(d, i + 1))} current={cur} />
+    <TrendChart values={Array.from({ length: nWeeks }, (_, i) => weekScore(d, i + 1))} current={cur} />
   </div>
   {#each d.plan!.goals as g (g.id)}
     <div class="card">
       <div class="cl">{g.emoji} {g.metricName} · цель {g.metricTarget}</div>
-      <TrendChart values={Array.from({ length: WEEKS }, (_, i) => d.progress.kpis[`${i + 1}:${g.id}`] ?? 0)} target={g.metricTarget} current={cur} />
+      <TrendChart values={Array.from({ length: nWeeks }, (_, i) => d.progress.kpis[`${i + 1}:${g.id}`] ?? 0)} target={g.metricTarget} current={cur} />
     </div>
   {/each}
 </main>

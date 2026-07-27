@@ -2,8 +2,7 @@
   import type { Store } from '../data/store.svelte';
   import type { CalendarEntry, ContentType, EntryStatus } from '../data/types';
   import { dialogs } from '../lib/telegram';
-  import { formatDay, weekOfDate, weekRange } from '../data/selectors';
-  import { WEEKS } from '../data/types';
+  import { formatDay, weekOfDate, planWeeks, weekRange } from '../data/selectors';
   import { resolveTheme, sys } from '../theme/theme.svelte';
   import AppHeader from '../components/AppHeader.svelte';
 
@@ -20,7 +19,7 @@
     const start = d.plan!.startDate;
     const w = weekOfDate(start, date);
     if (w < 1) return 'До старта программы';
-    if (w > WEEKS) return 'После 12 недель';
+    if (w > planWeeks(d.plan)) return `После ${planWeeks(d.plan)} недель`;
     return `Неделя ${w} · ${weekRange(start, w)}`;
   }
   const groups = $derived.by(() => {
