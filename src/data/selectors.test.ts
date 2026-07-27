@@ -112,3 +112,23 @@ describe('planWeeks / planTier', () => {
     expect(planTier({ tier: 'vip' })).toBe('full');
   });
 });
+
+describe('переменная длина программы', () => {
+  it('programState: 2-недельная программа завершается через 14 дней', () => {
+    expect(programState('2026-07-27', new Date('2026-08-05T12:00:00'), 2)).toBe('active');
+    expect(programState('2026-07-27', new Date('2026-08-10T12:00:00'), 2)).toBe('done');
+    expect(programState('2026-07-27', new Date('2026-08-10T12:00:00'))).toBe('active');
+  });
+  it('currentWeek клампится к N', () => {
+    expect(currentWeek('2026-07-27', new Date('2026-09-01T12:00:00'), 2)).toBe(2);
+  });
+  it('programEndISO: 2 недели = 14-й день', () => {
+    expect(programEndISO('2026-07-27', 2)).toBe('2026-08-09');
+  });
+  it('overallStats: длина из плана (weeks: 2)', () => {
+    const d = structuredClone(base);
+    d.plan!.weeks = 2;
+    expect(overallStats(d).scores.length).toBe(2);
+    expect(overallStats(d).weeks).toBe(2);
+  });
+});

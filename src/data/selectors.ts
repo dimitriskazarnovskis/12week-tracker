@@ -25,15 +25,15 @@ function daysSince(startDate: string, now: Date): number {
   const nowMid = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   return Math.round((nowMid.getTime() - start.getTime()) / 86400000);
 }
-export function currentWeek(startDate: string, now: Date): number {
+export function currentWeek(startDate: string, now: Date, weeks: number = WEEKS): number {
   const wk = Math.floor(daysSince(startDate, now) / 7) + 1;
-  return Math.min(WEEKS, Math.max(1, wk));
+  return Math.min(weeks, Math.max(1, wk));
 }
 export type ProgramState = 'before' | 'active' | 'done';
-export function programState(startDate: string, now: Date): ProgramState {
+export function programState(startDate: string, now: Date, weeks: number = WEEKS): ProgramState {
   const d = daysSince(startDate, now);
   if (d < 0) return 'before';
-  return d >= WEEKS * 7 ? 'done' : 'active';
+  return d >= weeks * 7 ? 'done' : 'active';
 }
 // Ближайший понедельник (сегодня, если понедельник) — дата старта по умолчанию.
 export function nextMondayISO(now: Date = new Date()): string {
@@ -67,9 +67,9 @@ export function lastKpi(d: AppData, goalId: ID): number {
   return 0;
 }
 // ISO-дата последнего (84-го) дня программы.
-export function programEndISO(startDate: string): string {
+export function programEndISO(startDate: string, weeks: number = WEEKS): string {
   const d = new Date(startDate + 'T00:00:00');
-  d.setDate(d.getDate() + WEEKS * 7 - 1);
+  d.setDate(d.getDate() + weeks * 7 - 1);
   const c = new Date(d); c.setMinutes(c.getMinutes() - c.getTimezoneOffset());
   return c.toISOString().slice(0, 10);
 }
@@ -117,8 +117,9 @@ export function kpiProgress(value: number, target: number): number {
   return Math.min(100, Math.round((value / target) * 100));
 }
 export function overallStats(d: AppData) {
-  const scores = Array.from({ length: WEEKS }, (_, i) => weekScore(d, i + 1));
+  const n = planWeeks(d.plan);
+  const scores = Array.from({ length: n }, (_, i) => weekScore(d, i + 1));
   const active = scores.filter(s => s > 0);
   const avgScore = active.length ? Math.round(active.reduce((a, b) => a + b, 0) / active.length) : 0;
-  return { weeksActive: active.length, avgScore, excellentWeeks: scores.filter(s => s >= 85).length, scores };
+  return { weeks: n, weeksActive: active.length, avgScore, excellentWeeks: scores.filter(s => s >= 85).length, scores };
 }
