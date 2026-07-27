@@ -16,8 +16,7 @@
   import type { Store } from '../data/store.svelte';
   import { tg } from '../lib/telegram';
   import { resolveTheme, sys } from '../theme/theme.svelte';
-  import { weekScore, currentWeek, tacticsForGoal, programState, weekRange, formatDay, overallStats } from '../data/selectors';
-  import { WEEKS } from '../data/types';
+  import { weekScore, currentWeek, tacticsForGoal, programState, weekRange, formatDay, overallStats, planWeeks, planTier } from '../data/selectors';
   import AppHeader from '../components/AppHeader.svelte';
   import WeekStrip from '../components/WeekStrip.svelte';
   import ScoreRing from '../components/ScoreRing.svelte';
@@ -30,13 +29,15 @@
   let { store }: { store: Store } = $props();
   const d = $derived(store.data);
   // svelte-ignore state_referenced_locally -- intentionally captures the week at mount time
-  let week = $state(currentWeek(store.data.plan!.startDate, new Date()));
+  let week = $state(currentWeek(store.data.plan!.startDate, new Date(), planWeeks(store.data.plan)));
   const score = $derived(weekScore(d, week));
-  const block = $derived(week <= 4 ? 'Блок 1 · Привычка' : week <= 8 ? 'Блок 2 · Ускорение' : 'Блок 3 · Финиш');
+  const nWeeks = $derived(planWeeks(d.plan));
+  const tier = $derived(planTier(d.plan));
+  const block = $derived(nWeeks === 12 ? (week <= 4 ? 'Блок 1 · Привычка' : week <= 8 ? 'Блок 2 · Ускорение' : 'Блок 3 · Финиш') : '');
   const scheme = $derived(resolveTheme(d.settings.theme, sys.scheme) as 'light' | 'dark');
   const hasTactics = $derived((d.plan?.tactics?.length ?? 0) > 0);
-  const today = $derived(currentWeek(d.plan!.startDate, new Date()));
-  const pstate = $derived(programState(d.plan!.startDate, new Date()));
+  const today = $derived(currentWeek(d.plan!.startDate, new Date(), nWeeks));
+  const pstate = $derived(programState(d.plan!.startDate, new Date(), nWeeks));
   // Future weeks are view-only: pre-checking week 12 on day one would fake the stats.
   const locked = $derived(pstate === 'before' || week > today);
   const range = $derived(weekRange(d.plan!.startDate, week));
@@ -47,7 +48,7 @@
   let feedbackTag = '';
   onMount(() => {
     if (pstate === 'before') return;
-    const lastWeek = pstate === 'done' ? WEEKS : today - 1;
+    const lastWeek = pstate === 'done' ? nWeeks : today - 1;
     if (lastWeek < 1) return;
     feedbackTag = `${d.plan?.planId ?? ''}:${lastWeek}`;
     try {
@@ -118,11 +119,11 @@
 {#if showConfetti}<Confetti />{/if}
 {#if weekFeedback}<WeekFeedback feedback={weekFeedback} onClose={closeFeedback} />{/if}
 <AppHeader {scheme} onToggle={toggleTheme} />
-<WeekStrip current={week} todayWeek={pstate === 'active' ? today : pstate === 'done' ? WEEKS + 1 : 0} onPick={(w) => (week = w)} />
+<WeekStrip current={week} weeks={nWeeks} todayWeek={pstate === 'active' ? today : pstate === 'done' ? nWeeks + 1 : 0} onPick={(w) => (week = w)} />
 <main class="bd">
   <div>
     {#if clientName}<div class="hello">Привет, {clientName}! 👋</div>{/if}
-    <div class="eyebrow">{block}</div>
+    {#if block}<div class="eyebrow">{block}</div>{/if}
     <h1 class="wk">Неделя {week}</h1>
     <div class="range">{range}</div>
   </div>
@@ -130,7 +131,12 @@
   {#if pstate === 'before'}
     <div class="notice">Ваша программа начнётся {formatDay(d.plan!.startDate)}: задачи откроются автоматически в день старта.</div>
   {:else if pstate === 'done'}
-    <div class="notice fin">12 недель завершены! Средний балл {overallStats(d).avgScore}%. Итоги ждут во вкладке «Прогресс».</div>
+    {#if tier === 'start'}
+      <div class="notice fin">Ваши {nWeeks} недели завершены! Средний балл {overallStats(d).avgScore}%.
+        Полная программа 12 недель открывается в пакете с сопровождением.</div>
+    {:else}
+      <div class="notice fin">{nWeeks} недель завершены! Средний балл {overallStats(d).avgScore}%. Итоги ждут во вкладке «Прогресс».</div>
+    {/if}
   {:else if locked}
     <div class="notice">Неделя {week} ({range}) ещё не началась. Отметки откроются в её первый день.</div>
   {/if}
