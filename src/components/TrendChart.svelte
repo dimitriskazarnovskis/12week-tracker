@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { WEEKS } from '../data/types';
+  // Столбиков ровно столько, сколько недель в программе: values задаёт длину.
   let { values, target = 0, current }: { values: number[]; target?: number; current: number } = $props();
   const max = $derived(Math.max(target, 1, ...values));
 </script>
@@ -7,8 +7,8 @@
   {#if target > 0}
     <div class="goal-line" style="bottom:{17 + (target / max) * 46}px" title="Цель: {target}"></div>
   {/if}
-  {#each Array(WEEKS) as _, i}
-    {@const v = values[i] ?? 0}
+  {#each values as raw, i (i)}
+    {@const v = raw ?? 0}
     <div class="col">
       <div class="bar" class:cur={i + 1 === current} class:has={v > 0 && i + 1 !== current} style="height:{Math.max(3, (v / max) * 46)}px"></div>
       <span>{i + 1}</span>

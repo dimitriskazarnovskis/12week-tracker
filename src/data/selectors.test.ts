@@ -132,3 +132,13 @@ describe('переменная длина программы', () => {
     expect(overallStats(d).weeks).toBe(2);
   });
 });
+
+describe('codex-ревью v1.7.0: хвосты за границей программы', () => {
+  it('lastKpi игнорирует значения за пределами длины программы', () => {
+    const d = structuredClone(base);
+    d.plan!.weeks = 2;
+    d.progress.kpis['2:g1'] = 50;
+    d.progress.kpis['7:g1'] = 999; // мусор от старого 12-недельного плана
+    expect(lastKpi(d, 'g1')).toBe(50);
+  });
+});

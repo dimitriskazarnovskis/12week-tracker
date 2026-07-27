@@ -33,6 +33,8 @@
   const score = $derived(weekScore(d, week));
   const nWeeks = $derived(planWeeks(d.plan));
   const tier = $derived(planTier(d.plan));
+  // План могли заменить на более короткий, пока экран открыт: выбранная неделя не выпадает за границу.
+  $effect(() => { if (week > nWeeks) week = nWeeks; });
   const block = $derived(nWeeks === 12 ? (week <= 4 ? 'Блок 1 · Привычка' : week <= 8 ? 'Блок 2 · Ускорение' : 'Блок 3 · Финиш') : '');
   const scheme = $derived(resolveTheme(d.settings.theme, sys.scheme) as 'light' | 'dark');
   const hasTactics = $derived((d.plan?.tactics?.length ?? 0) > 0);

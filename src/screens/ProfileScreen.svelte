@@ -3,7 +3,7 @@
   import type { AppData, ThemePref } from '../data/types';
   import { APP_VERSION, EMOJIS } from '../data/types';
   import { toExport, parseImportFile } from '../data/exportImport';
-  import { tacticsForGoal, formatDay, overallStats, lastKpi, kpiProgress, programEndISO } from '../data/selectors';
+  import { tacticsForGoal, formatDay, overallStats, lastKpi, kpiProgress, programEndISO, planWeeks } from '../data/selectors';
   import type { ArchivedCycle } from '../data/types';
   import { tg, dialogs } from '../lib/telegram';
   import { resolveTheme, sys } from '../theme/theme.svelte';
@@ -85,8 +85,8 @@
       const v = lastKpi(fake, g.id);
       return `${g.emoji} ${g.name}, ${g.metricName}: ${v} из ${g.metricTarget} (${kpiProgress(v, g.metricTarget)}%)`;
     }).join('\n');
-    const period = `${formatDay(c.plan.startDate, false)} – ${formatDay(programEndISO(c.plan.startDate), false)}`;
-    return `🏁 Итоги цикла (${period})\nСредний балл ${st.avgScore}% · отличных недель ${st.excellentWeeks} из 12\n\n${goals}\n\nDr. Kazarnovskis & Partners`;
+    const period = `${formatDay(c.plan.startDate, false)} – ${formatDay(programEndISO(c.plan.startDate, planWeeks(c.plan)), false)}`;
+    return `🏁 Итоги цикла (${period})\nСредний балл ${st.avgScore}% · отличных недель ${st.excellentWeeks} из ${st.weeks}\n\n${goals}\n\nDr. Kazarnovskis & Partners`;
   }
   async function copyCycle(c: ArchivedCycle) {
     try { await navigator.clipboard.writeText(cycleSummary(c)); dataMsg = 'Итоги цикла скопированы ✓'; dataMsgBad = false; }
@@ -187,7 +187,7 @@
       {#each d.archive as c, i (c.archivedAt)}
         <div class="goal">
           <span>🏁</span>
-          <b>Цикл {i + 1} · {formatDay(c.plan.startDate, false)} – {formatDay(programEndISO(c.plan.startDate), false)}</b>
+          <b>Цикл {i + 1} · {formatDay(c.plan.startDate, false)} – {formatDay(programEndISO(c.plan.startDate, planWeeks(c.plan)), false)}</b>
           <button class="edit" onclick={() => copyCycle(c)}>Итоги</button>
         </div>
       {/each}

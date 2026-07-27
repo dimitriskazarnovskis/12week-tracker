@@ -58,9 +58,10 @@ export function formatDay(iso: string, withWeekday = true): string {
   const base = `${d.getDate()} ${RU_MONTHS[d.getMonth()]}`;
   return withWeekday ? `${base} · ${RU_DAYS[d.getDay()]}` : base;
 }
-// Последнее записанное значение показателя (неделя 12 → 1); 0, если ни разу не вводили.
+// Последнее записанное значение показателя (неделя N → 1); 0, если ни разу не вводили.
+// Граница = длина программы: мусор за пределами (от прошлых планов) не подхватываем.
 export function lastKpi(d: AppData, goalId: ID): number {
-  for (let w = WEEKS; w >= 1; w--) {
+  for (let w = planWeeks(d.plan); w >= 1; w--) {
     const v = d.progress.kpis[`${w}:${goalId}`];
     if (v != null) return v;
   }

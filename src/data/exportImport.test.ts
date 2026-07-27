@@ -48,3 +48,21 @@ describe('export/import', () => {
     expect(() => fromImport(text)).toThrow(/версией/i);
   });
 });
+
+describe('валидация weeks/tier при импорте', () => {
+  const mk = (plan: object) => JSON.stringify({
+    meta: { schemaVersion: 1, createdAt: 'x', updatedAt: 'x' },
+    plan: { planId: 'p', planVersion: 1, clientId: 'c', startDate: '2026-07-27',
+      goals: [], tactics: [], calendar: [], ...plan },
+    progress: { checks: {}, kpis: {}, reflections: {} },
+    settings: { theme: 'light', lang: 'ru' },
+  });
+  it('валидные weeks/tier проходят', () => {
+    expect(fromImport(mk({ weeks: 2, tier: 'start' })).plan?.weeks).toBe(2);
+  });
+  it('кривые weeks (3.7, 99) и tier (starter) отклоняются с ошибкой', () => {
+    expect(() => fromImport(mk({ weeks: 3.7 }))).toThrow();
+    expect(() => fromImport(mk({ weeks: 99 }))).toThrow();
+    expect(() => fromImport(mk({ tier: 'starter' }))).toThrow();
+  });
+});
