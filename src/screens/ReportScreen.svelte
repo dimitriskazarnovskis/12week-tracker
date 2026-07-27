@@ -1,13 +1,15 @@
 <script lang="ts">
   import type { Store } from '../data/store.svelte';
   import type { MonthlyReport } from '../data/types';
-  import { reportMonths, monthLabel, growthHealth } from '../data/selectors';
+  import { reportMonths, monthLabel, growthHealth, planTier } from '../data/selectors';
   import { resolveTheme, sys } from '../theme/theme.svelte';
   import AppHeader from '../components/AppHeader.svelte';
 
   let { store }: { store: Store } = $props();
   const d = $derived(store.data);
   const scheme = $derived(resolveTheme(d.settings.theme, sys.scheme) as 'light' | 'dark');
+  // Пробный пакет: отчёт заперт, показываем апселл с размытым тизером вместо данных.
+  const locked = $derived(planTier(d.plan) === 'start');
   function toggleTheme() { store.setTheme(scheme === 'dark' ? 'light' : 'dark'); }
 
   const months = $derived(reportMonths(d.plan!.startDate, new Date()));
@@ -63,6 +65,29 @@
   const zoneLabel = $derived(zone === 'bad' ? 'нездоровый рост' : zone === 'mid' ? 'рост с оговорками' : 'здоровый рост');
 </script>
 <AppHeader {scheme} onToggle={toggleTheme} />
+{#if locked}
+<main class="bd">
+  <h1 class="h">Отчёт месяца</h1>
+  <div class="lockcard">
+    <div class="lockicon" aria-hidden="true">🔒</div>
+    <div class="locktitle">Отчёт месяца доступен в пакете с сопровождением</div>
+    <p class="locktext">Раз в месяц мы присылаем готовый отчёт: было и стало по каждой цели, одним нажатием.</p>
+  </div>
+  <div class="teaser" aria-hidden="true">
+    <div class="sec">Было → стало</div>
+    <div class="tiles">
+      <div class="tile"><div class="tl">Подписчики</div><div class="tv"><span class="was">8 210</span><span class="arr">→</span><b class="now">8 460</b></div><span class="badge up">+3%</span></div>
+      <div class="tile"><div class="tl">Просмотры</div><div class="tv"><span class="was">5 400</span><span class="arr">→</span><b class="now">9 800</b></div><span class="badge up">+81%</span></div>
+      <div class="tile"><div class="tl">Охват</div><div class="tv"><span class="was">12 400</span><span class="arr">→</span><b class="now">21 300</b></div><span class="badge up">+72%</span></div>
+      <div class="tile"><div class="tl">Лайки</div><div class="tv"><span class="was">610</span><span class="arr">→</span><b class="now">1 040</b></div><span class="badge up">+70%</span></div>
+    </div>
+    <div class="card"><div class="cl">Здоровье роста</div>
+      <div class="hrow2"><b class="hnum good">100</b><div class="hbar"><i style="width:100%" class="good"></i></div></div>
+      <div class="hlab good">здоровый рост</div>
+    </div>
+  </div>
+</main>
+{:else}
 <main class="bd">
   <h1 class="h">Отчёт месяца</h1>
   <p class="lead">Цифры из Instagram Insights: раз в месяц, обычно на созвоне с консультантом.</p>
@@ -129,7 +154,13 @@
     <div class="hint">Проценты показывают конверсию из предыдущей ступени. Охват берётся из «Цифр месяца».</div>
   </div>
 </main>
+{/if}
 <style>
+  .lockcard{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:22px 18px;text-align:center;display:flex;flex-direction:column;gap:8px;align-items:center}
+  .lockicon{font-size:30px;line-height:1}
+  .locktitle{font-size:16px;font-weight:800;letter-spacing:-.2px;line-height:1.35}
+  .locktext{font-size:13px;color:var(--body);line-height:1.5;max-width:300px}
+  .teaser{filter:blur(6px);opacity:.55;pointer-events:none;user-select:none;display:flex;flex-direction:column;gap:16px}
   .bd{padding:6px 16px 28px;display:flex;flex-direction:column;gap:16px}
   .h{font-size:24px;font-weight:800;letter-spacing:-.5px}
   .lead{font-size:13px;color:var(--body);margin-top:-6px;line-height:1.45}
